@@ -67,9 +67,9 @@ def practice_predict():
     print(headline)
     print(f"True Label: {topic}, Predicted Label: {loaded_model.predict(nlp(headline).vector.reshape(1, -1))[0]} \n")
 
-def web_category(website):
-  category = loaded_model.predict(nlp(website).vector.reshape(1, -1))[0]
-  # return category
-  print(category)
+def predict_topic(text):
+  topic = loaded_model.predict(nlp(text).vector.reshape(1, -1))[0]
+  # return topic
+  return topic
 
 # practice_predict()

