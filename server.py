@@ -24,22 +24,29 @@ with open("user_psw.txt") as file:
         user_passwords[line[1]] = line[0]
 
 def categorize_text(data):
-    user_id = data.split(':')[1]
-    text = data.split(':')[2]
+    user_id = data.split('*')[1]
+    text = data.split('*')[2]
     topic = predict_topic(text)
 
-    c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text), topic)
+    c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text, topic))
     c.execute("INSERT INTO texts (user_id, topic) VALUES(?,?)",(user_id, topic))
     conn.commit()
 
     return(topic)
 
 def process_websites(data):
-    user_id = data.split(':')[1]
-    websites = data.split(':')[2]
-    websites = websites.split('#')
-    websites = [tab.split(' ') for tab in websites]
-    websites = [tab.append(categorize_text(tab[1])) for tab in websites]
+    data = data.split('>')
+    user_id = data[1]
+    websites = data[2]
+    websites = websites.split(';')
+    websites = [tab.split('  ') for tab in websites]
+
+    for tab in websites:
+        print(tab)
+        topic = categorize_text(f"*{user_id}*{tab[1]}")
+        tab.append(topic)
+
+    print(websites)
 
     for tab in websites:
         c.execute("INSERT INTO websites (user_id, link, title, topic) VALUES(?,?,?,?)",(user_id, tab[0], tab[1], tab[2])) 
@@ -122,7 +129,7 @@ while True:
 
                 if "new_text" in data:
                     # topic = categorize_text(data)
-                    print(data.split(':')[2])
+                    print(data.split('*')[2])
                     print(categorize_text(data))
                 
                 if "new_websites" in data:
