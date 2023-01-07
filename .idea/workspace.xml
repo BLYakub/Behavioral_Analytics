@@ -20,8 +20,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="405a0e25-9cfe-4b33-a49a-460dac886de0" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/Behavioral_Analytics.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Behavioral_Analytics.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
@@ -44,8 +42,9 @@
   </component>
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../Python/Final_Project_11" />
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
   </component>
   <component name="RunManager">
@@ -104,35 +103,5 @@
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
-  </component>
-  <component name="WindowStateProjectService">
-    <state x="414" y="175" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1672743669396">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="414" y="175" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1672743669396" />
-    <state width="1893" height="266" key="GridCell.Tab.0.bottom" timestamp="1672747978645">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1893" height="266" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1672747978645" />
-    <state width="1893" height="266" key="GridCell.Tab.0.center" timestamp="1672747978645">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1893" height="266" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1672747978645" />
-    <state width="1893" height="266" key="GridCell.Tab.0.left" timestamp="1672747978645">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1893" height="266" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1672747978645" />
-    <state width="1893" height="266" key="GridCell.Tab.0.right" timestamp="1672747978645">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1893" height="266" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1672747978645" />
-    <state x="461" y="165" key="SettingsEditor" timestamp="1672743584077">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="461" y="165" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1672743584077" />
-    <state x="736" y="387" width="555" height="282" key="org.intellij.images.editor.actions.BackgroundImageDialog" timestamp="1672743574318">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="736" y="387" width="555" height="282" key="org.intellij.images.editor.actions.BackgroundImageDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1672743574318" />
   </component>
 </project>
