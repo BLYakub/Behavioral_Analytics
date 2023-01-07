@@ -8,11 +8,11 @@ from select import select
 
 # conn = sqlite3.connect('my_db.db')
 # c = conn.cursor()
-
 all_sockets = []
 conn_sock = socket(AF_INET,SOCK_STREAM)
 all_sockets.append(conn_sock)
 conn_sock.bind(("localhost",55000))
+conn_sock.listen()
 
 training_data = []
 
@@ -44,7 +44,7 @@ while True:
         if curr_socket == conn_sock:
             client_sock,addr = conn_sock.accept()
             all_sockets.append(client_sock)
-
+            print("connected")
         else:
 
             # Else it recieves data from a certain client
@@ -65,7 +65,9 @@ while True:
                     data = data.decode()
 
                 if "new_text" in data:
-                    topic = categorize_text(data)
+                    # topic = categorize_text(data)
+                    print(data.split(':')[1])
+                    print(categorize_text(data))
                 
                 if "new_websites" in data:
                     process_websites(data)
