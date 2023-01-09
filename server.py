@@ -8,6 +8,7 @@ from select import select
 
 conn = sqlite3.connect('my_db.db')
 c = conn.cursor()
+
 print('yo')
 all_sockets = []
 conn_sock = socket(AF_INET,SOCK_STREAM)
@@ -15,13 +16,8 @@ all_sockets.append(conn_sock)
 conn_sock.bind(("localhost",55000))
 conn_sock.listen()
 print('yo 2')
-
 user_passwords = {}
-with open("user_psw.txt") as file:
-    for line in file:
-        line = line.strip()
-        line = line.split(':')
-        user_passwords[line[1]] = line[0]
+
 
 def categorize_text(data):
     user_id = data.split('*')[1]
@@ -82,19 +78,69 @@ def get_buffer(data):
     return buffer
 
 def check_user_verification(client_socket):
-    buffer = get_buffer("Enter User Password")
+    buffer = get_buffer("Login or Sign Up")
     client_socket.send(buffer.encode())
-    client_socket.send("Enter User Password".encode())
+    client_socket.send("Login or Sign Up".encode())
 
     buffer = client_socket.recv(5).decode()
-    user_psw = client_socket.recv(int(buffer)).decode()
+    data = client_socket.recv(int(buffer)).decode()
 
-    if user_psw in user_passwords:
-        buffer = get_buffer(f"{user_passwords[user_psw]}")
+    if data.lower() == "login":
+        buffer = get_buffer("Enter Username")
         client_socket.send(buffer.encode())
-        client_socket.send(f"{user_passwords[user_psw]}".encode())
+        client_socket.send("Enter Username".encode())
+
+        buffer = client_socket.recv(5).decode()
+        username = client_socket.recv(int(buffer)).decode()
+
+        if username in user_passwords.values():
+            return False
+            
+        buffer = get_buffer("Enter User Password")
+        client_socket.send(buffer.encode())
+        client_socket.send("Enter User Password".encode())
+
+        buffer = client_socket.recv(5).decode()
+        user_psw = client_socket.recv(int(buffer)).decode()
+
+        if user_passwords[username] == user_psw:
+            return True
+        return False
+    
+    elif data.lower() == "sign up":
+        buffer = get_buffer("Enter Username")
+        client_socket.send(buffer.encode())
+        client_socket.send("Enter Username".encode())
+
+        buffer = client_socket.recv(5).decode()
+        username = client_socket.recv(int(buffer)).decode()
+
+        if username in user_passwords:
+            return False
+
+        buffer = get_buffer("Enter User Password")
+        client_socket.send(buffer.encode())
+        client_socket.send("Enter User Password".encode())
+
+        buffer = client_socket.recv(5).decode()
+        user_psw = client_socket.recv(int(buffer)).decode()
+
+        user_passwords[username] = user_psw
+
+        with open("user_psw.txt", "a") as file:
+            file.write(f"\n{username}:{user_psw}")
+
         return True
     return False
+
+def get_user_info():
+    with open("user_psw.txt") as file:
+        for line in file:
+            line = line.strip()
+            line = line.split(':')
+            user_passwords[line[0]] = line[1]
+
+get_user_info()
 
 while True:
     read,write,error =  select(all_sockets, all_sockets,[])
@@ -108,6 +154,8 @@ while True:
             if check_user:
                 all_sockets.append(client_sock)
                 print("connected")
+            else:
+                client_sock.close()
         else:
 
             # Else it recieves data from a certain client

