@@ -5,29 +5,35 @@ import re
 from ml_classifier import *
 from socket import *
 from select import select
+import pickle
 
 conn = sqlite3.connect('my_db.db')
 c = conn.cursor()
 
-print('yo')
 all_sockets = []
 conn_sock = socket(AF_INET,SOCK_STREAM)
 all_sockets.append(conn_sock)
 conn_sock.bind(("localhost",55000))
 conn_sock.listen()
-print('yo 2')
+print('waiting')
+
 user_passwords = {}
 
 
 def categorize_text(data):
+    data_type = data.split('*')[0]
     user_id = data.split('*')[1]
     text = data.split('*')[2]
     topic = predict_topic(text)
+    print(text)
+    print(topic)
 
     c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text, topic))
-    c.execute("INSERT INTO texts (user_id, topic) VALUES(?,?)",(user_id, topic))
-    conn.commit()
 
+    if data_type == 'new_text':
+        c.execute("INSERT INTO texts (user_id, topic) VALUES(?,?)",(user_id, topic))
+
+    conn.commit()  
     return(topic)
 
 def process_websites(data):
@@ -36,9 +42,9 @@ def process_websites(data):
     websites = data[2]
     websites = websites.split(';')
     websites = [tab.split('  ') for tab in websites]
-
+    
     for tab in websites:
-        print(tab)
+        # print(tab)
         topic = categorize_text(f"*{user_id}*{tab[1]}")
         tab.append(topic)
 
@@ -54,6 +60,7 @@ def save_apps(data):
     apps = data.split(':')[2]
     apps = apps.split('#')
 
+    print(apps)
     for app in apps:
         c.execute(f"SELECT * FROM apps WHERE user_id = '{user_id}' AND name = '{app}'")
         record = c.fetchone()
@@ -176,9 +183,8 @@ while True:
                     data = data.decode()
 
                 if "new_text" in data:
-                    # topic = categorize_text(data)
-                    print(data.split('*')[2])
-                    print(categorize_text(data))
+                    topic = categorize_text(data)
+                    # categorize_text(data)
                 
                 if "new_websites" in data:
                     process_websites(data)
