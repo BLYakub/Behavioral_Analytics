@@ -31,7 +31,13 @@ def categorize_text(data):
     c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text, topic))
 
     if data_type == 'new_text':
-        c.execute("INSERT INTO texts (user_id, topic) VALUES(?,?)",(user_id, topic))
+        c.execute(f"SELECT * FROM texts WHERE user_id = '{user_id}' AND topic = '{topic}'")
+        record = c.fetchone()
+
+        if record is None:
+            c.execute("INSERT INTO texts (user_id, topic, count) VALUES(?,?,?)",(user_id, topic, 1))
+        else:
+            c.execute(f"UPDATE texts SET count = {record[-1] + 1} WHERE user_id = '{user_id}' AND topic = '{topic}'")
 
     conn.commit()  
     return(topic)
