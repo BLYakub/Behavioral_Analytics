@@ -6,6 +6,7 @@ from ml_classifier import *
 from socket import *
 from select import select
 import pickle
+from profiles import *
 
 conn = sqlite3.connect('my_db.db')
 c = conn.cursor()
@@ -28,16 +29,21 @@ def categorize_text(data):
     print(text)
     print(topic)
 
-    c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text, topic))
-
     if data_type == 'new_text':
-        c.execute(f"SELECT * FROM texts WHERE user_id = '{user_id}' AND topic = '{topic}'")
-        record = c.fetchone()
+        c.execute(f"SELECT * FROM texts WHERE user_id = '{user_id}'")
+        text_data = c.fetchall()
 
-        if record is None:
-            c.execute("INSERT INTO texts (user_id, topic, count) VALUES(?,?,?)",(user_id, topic, 1))
-        else:
-            c.execute(f"UPDATE texts SET count = {record[-1] + 1} WHERE user_id = '{user_id}' AND topic = '{topic}'")
+        if not detect_anomaly(text_data, topic):
+            c.execute(f"SELECT * FROM texts WHERE user_id = '{user_id}' AND topic = '{topic}'")
+            record = c.fetchone()
+
+            if record is None:
+                c.execute("INSERT INTO texts (user_id, topic, count) VALUES(?,?,?)",(user_id, topic, 1))
+            else:
+                c.execute(f"UPDATE texts SET count = {record[-1] + 1} WHERE user_id = '{user_id}' AND topic = '{topic}'")
+
+
+    c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text, topic))
 
     conn.commit()  
     return(topic)
@@ -49,15 +55,20 @@ def process_websites(data):
     websites = websites.split(';')
     websites = [tab.split('  ') for tab in websites]
     
+    c.execute(f"SELECT * FROM websites WHERE user_id = '{user_id}'")
+    web_data = c.fetchall()
     for tab in websites:
         # print(tab)
         topic = categorize_text(f"*{user_id}*{tab[1]}")
         tab.append(topic)
 
+        if not detect_anomaly(web_data, topic):
+            c.execute("INSERT INTO websites (user_id, link, title, topic) VALUES(?,?,?,?)",(user_id, tab[0], tab[2], tab[1]))
+
     print(websites)
 
-    for tab in websites:
-        c.execute("INSERT INTO websites (user_id, link, title, topic) VALUES(?,?,?,?)",(user_id, tab[0], tab[1], tab[2])) 
+    # for tab in websites:
+    #     c.execute("INSERT INTO websites (user_id, link, title, topic) VALUES(?,?,?,?)",(user_id, tab[0], tab[1], tab[2])) 
 
     conn.commit()
 
@@ -78,7 +89,6 @@ def save_apps(data):
     
     conn.commit()
 
-
 def get_buffer(data):
     length = len(data)
     count = 0
@@ -89,6 +99,21 @@ def get_buffer(data):
 
     buffer = (5-count)*'0' + f'{len(data)}'
     return buffer
+
+def show_user_profiles():
+
+    for user in user_passwords.keys():
+        print(user)
+        c.execute(f"SELECT * FROM apps WHERE user_id = '{user}'")
+        apps = c.fetchall()
+
+        c.execute(f"SELECT * FROM websites WHERE user_id = '{user}'")
+        websites = c.fetchall()
+
+        c.execute(f"SELECT * FROM texts WHERE user_id = '{user}'")
+        texts = c.fetchall()
+
+        create_profile(apps, websites, texts)
 
 def check_user_verification(client_socket):
     buffer = get_buffer("Login or Sign Up")
@@ -140,20 +165,21 @@ def check_user_verification(client_socket):
 
         user_passwords[username] = user_psw
 
-        with open("user_psw.txt", "a") as file:
-            file.write(f"\n{username}:{user_psw}")
+        c.execute("INSERT INTO users (username, password) VALUES(?,?)",(username, user_psw))
+        conn.commit()
 
         return True
     return False
 
 def get_user_info():
-    with open("user_psw.txt") as file:
-        for line in file:
-            line = line.strip()
-            line = line.split(':')
-            user_passwords[line[0]] = line[1]
+    c.execute(f"SELECT * FROM users")
+    record = c.fetchall()
+
+    for user in record:
+        user_passwords[user[0]] = user[1]
 
 get_user_info()
+show_user_profiles()
 
 while True:
     read,write,error =  select(all_sockets, all_sockets,[])
