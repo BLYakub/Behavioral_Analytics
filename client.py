@@ -5,7 +5,8 @@ import datetime
 from googletrans import Translator
 from bs4 import BeautifulSoup
 import requests
-import keyboard
+# from keyboard import record
+import keyboard as kboard
 from socket import *
 import os
 import docx
@@ -13,12 +14,11 @@ from rake_nltk import Rake
 from threading import Thread
 import time
 from threads import *
-
-sock = socket(AF_INET,SOCK_STREAM)
-sock.connect(("localhost",55000))
-
-visited_websites = []
-user_id = ""
+from pynput import mouse, keyboard
+import sys
+from admin import *
+from client_gui import *
+import pyautogui
 
 
 def get_buffer(data):
@@ -33,47 +33,11 @@ def get_buffer(data):
     return buffer
 
 
-def convert_to_human_time(dtmDate):
-    strDateTime = ""
-    
-    if dtmDate[6] == 0:
-        strDateTime = f"{dtmDate[7]}/"
-    else:
-        strDateTime = f"{dtmDate[6]}{dtmDate[7]}/"
-
-    if dtmDate[4] == 0:
-        strDateTime = f"{strDateTime}{dtmDate[5]}/"
-    else:
-        first_segment = f"{strDateTime}{dtmDate[4]}{dtmDate[5]}/"
-        second_segment = f"{dtmDate[0]}{dtmDate[1]}{dtmDate[2]}{dtmDate[3]} {dtmDate[8]}{dtmDate[9]}:{dtmDate[10]}{dtmDate[11]}"
-        strDateTime = f"{first_segment}{second_segment}"
-    
-    return strDateTime
-
-
-def get_logon_logoff():
-    strComputer = "."
-    objWMIService = win32com.client.Dispatch("WbemScripting.SWbemLocator")
-    objSWbemServices = objWMIService.ConnectServer(strComputer, "root\cimv2")
-    colItems = objSWbemServices.ExecQuery(
-        "SELECT * FROM Win32_NetworkLoginProfile")
-
-    for objItem in colItems:
-
-        if objItem.LastLogon is not None:
-            print(objItem.LastLogon)
-            logon = convert_to_human_time(objItem.LastLogon)
-            print(f"Last Logon: {logon}")
-
-        if objItem.LastLogoff is not None:
-            logoff = convert_to_human_time(objItem.LastLogoff)
-            print(f"Last Logoff: {logoff}")
-
-
 def get_running_apps():
     apps = []
     NOT_WANTED_APPS = 'Description-----------Application Frame Host'
     cmd = 'powershell "gps | where {$_.MainWindowTitle } | select Description'
+    # cmd = 'powershell "gps | where {$_.MainWindowTitle } | select ProcessName'
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
 
     for line in proc.stdout:
@@ -81,19 +45,23 @@ def get_running_apps():
             # only print lines that are not empty
             # decode() is necessary to get rid of the binary string (b')
             # rstrip() to remove `\r\n`
-            apps.append(line.decode().rstrip())
+            app = line.decode().rstrip()
+            if app not in used_apps:
+                apps.append(app)
+                used_apps.append(app)
     try:
         apps.remove('Setup/Uninstall')
     except:
         pass
-    print("apps")
-    print(apps)
-    apps = '#'.join(apps)
-    buffer = get_buffer(f"new_apps:{user_id}:{apps}")
-    sock.send(buffer.encode())
-    sock.send(f"new_apps:{user_id}:{apps}".encode())
+    
+    if apps:
+        apps = '#'.join(apps)
+        buffer = get_buffer(f"new_apps:{user_id}:{apps}")
+        sock.send(buffer.encode())
+        sock.send(f"new_apps:{user_id}:{apps}".encode())
+        verify_user_anomaly()
 
-
+    
 def get_tabs():
     c = Chrome()
     outputs = c.fetch_history()
@@ -115,16 +83,17 @@ def get_tabs():
     for url in websites:
         title = get_website_title(url)
         if title:
-            web_list.append(f"{url} {title}")
+            web_list.append(f"{url}  {title}")
             
     print("websites")
     print(web_list)
-    websites = ';'.join(websites)
-
+    websites = ';'.join(web_list)
+    
     if websites:
         buffer = get_buffer(f"new_websites>{user_id}>{websites}")
         sock.send(buffer.encode())
         sock.send(f"new_websites>{user_id}>{websites}".encode())
+        verify_user_anomaly()
 
 
 def get_website_title(url):    
@@ -141,7 +110,7 @@ def get_website_title(url):
 
 def type_trace():
     while True:
-        recorded = keyboard.record(until='enter')
+        recorded = kboard.record(until='enter')
         all_keys = [key.name for key in recorded if key.event_type == "down"]
         all_keys.pop(-1)
         all_keys = ''.join(all_keys)
@@ -150,10 +119,11 @@ def type_trace():
         print("Typed text")
         print(all_keys)
 
-        if all_keys != '':
+        if all_keys != '' and len(all_keys) > 5:
             buffer = get_buffer(f"new_text*{user_id}*{all_keys}")
             sock.send(buffer.encode())
             sock.send(f"new_text*{user_id}*{all_keys}".encode())
+            verify_user_anomaly()
 
 
 def get_word_docs():
@@ -186,7 +156,7 @@ def get_word_docs():
     if new_docs:
         for doc in new_docs:
             get_word_text(doc)
-    # get_word_text(new_docs[-1])
+    get_word_text(new_docs[-1])
 
 
 def get_word_text(doc):
@@ -218,58 +188,258 @@ def get_word_text(doc):
     buffer = get_buffer(f"new_text*{user_id}*{new_words}")
     sock.send(buffer.encode())
     sock.send(f"new_text*{user_id}*{new_words}".encode())
+    verify_user_anomaly()
+
+
+def unblock_computer():
+    global block_comp
+    buffer = sock.recv(5).decode()
+    check = sock.recv(int(buffer)).decode()
+    print(check)
+    block_comp = False
+
+
+def block_computer():
+    global block_comp
+
+    thread = Thread(target=unblock_computer)
+
+    print("block")
+    pyautogui.FAILSAFE = False
+    pyautogui.PAUSE = 0
+
+    # Move the mouse pointer to the upper-left corner of the screen
+    x, y = 0, 0
+
+    # Move the mouse pointer to the lower-right corner of the screen
+    w, h = pyautogui.size()
+    w -= 1
+    h -= 1
+
+    thread.start()
+
+    # kboard.block_key(kboard.all_modifiers)
+    for i in range(150):
+        kboard.block_key(i)
+
+    while block_comp:
+        pyautogui.moveTo(x, y, duration=0)
+        pyautogui.moveTo(w, h, duration=0)
+
+    for i in range(150):
+        kboard.unblock_key(i)
+
+    print("done blocking")
+
+
+def wait_for_block():
+    global run_tracking, block_comp
+    while True:
+        data, address = udp_socket.recvfrom(5)
+        block_comp = True
+        run_tracking = False
+
+
+def on_anomaly_verified(successful):
+    global block_comp, run_tracking
+    block_comp = not successful
+    if block_comp:
+        run_tracking = False
+
+
+def verify_user_anomaly():
+    global block_comp
+
+    buffer = sock.recv(5).decode()
+    check = sock.recv(int(buffer)).decode()
+
+    if check != "okay":
+        anomaly_window = AnomalyWindow(sock, app)
+        anomaly_window.anomaly_verified.connect(on_anomaly_verified)
+        anomaly_window.show()
+        anomaly_window.start_timer()
+        app.exec_()
+    
+
+def on_login_successful(successful):
+    global block_comp, run_tracking, user_id, is_admin
+
+    block_comp = not successful
+    print(block_comp)
+    if block_comp:
+        run_tracking = False
+
+    else:
+        run_tracking = True
+        buffer = sock.recv(5).decode()
+        data = sock.recv(int(buffer)).decode()
+        data = data.split(":")
+        user_id = data[1]
+
+        if data[0] == "admin":
+            is_admin = True
+        
+        else:
+            is_admin = False
 
 
 def start_server_conn():
-    global user_id
+    login_window = LoginWindow(sock, app)
+    login_window.login_successful.connect(on_login_successful)
+    login_window.show()
+    login_window.start_timer()
+    app.exec_()
 
+
+def logout_user(successful):
+    global run_tracking
+
+    if successful:
+        buffer = get_buffer(f"logoff;{user_id}")
+        sock.send(buffer.encode())
+        sock.send(f"logoff;{user_id}".encode())
+
+        run_tracking = False
+
+
+def wait_for_user_activity():
+    print("waiting")
+    activity_detected = False
+    # Define a function to handle user activity
+    def on_activity(*args):
+        nonlocal activity_detected
+        activity_detected = True
+
+    # Create a listener for mouse and keyboard events
+    with mouse.Listener(on_click=on_activity) as mouse_listener:
+        with keyboard.Listener(on_press=on_activity) as keyboard_listener:
+            # Wait for user activity
+            activity_detected = False
+            while not activity_detected:
+                time.sleep(1)
+            
+            # Stop the listeners
+            mouse_listener.stop()
+            keyboard_listener.stop()
+
+    print("User activity detected!")
+    start_server_conn()
+
+    if not is_admin:
+        verify_user_anomaly()
+
+
+def track_user_inactive():
+    print("Run Tracking")
+    # app_thread = RepeatTimer(5, get_running_apps)
+    # app_thread.start()
+
+    # web_thread = RepeatTimer(60, get_tabs)
+    # web_thread.start()
+
+    # word_thread = RepeatTimer(300, get_word_docs)
+    # word_thread.start()
+
+    # type_thread = Thread(target=type_trace)
+    # type_thread.start()
+
+    inactivity_threshold = 300
+
+    # Define a function to handle user activity
+    def on_activity(*args):
+        nonlocal last_activity_time
+        last_activity_time = time.time()
+
+    # Start tracking time
+    last_activity_time = time.time()
+    # Create a listener for mouse and keyboard events
+    with mouse.Listener(on_move=on_activity, on_click=on_activity, on_scroll=on_activity) as mouse_listener:
+        with keyboard.Listener(on_press=on_activity, on_release=on_activity) as keyboard_listener:
+            # Loop until user shows activity
+            while run_tracking:
+                # Check if user has been inactive for too long
+                if time.time() - last_activity_time > inactivity_threshold:
+                    print("User is inactive!")
+                    logout_window = LogoutWindow(app)
+                    logout_window.logout_verified.connect(logout_user)
+                    logout_window.show()
+                    logout_window.start_timer()
+                    app.exec_()
+                else:
+                    print("active")
+                    pass                
+                # Wait for 1 second before checking again
+                time.sleep(1)
+            
+            # Stop the listeners
+            mouse_listener.stop()
+            keyboard_listener.stop()
+
+    print("Tracking stopped.")
+
+    # app_thread.cancel()
+    # web_thread.cancel()
+    # word_thread.cancel()
+    # type_thread.cancel()
+
+
+def run_user_activity():
+    global is_admin, run_tracking, block_comp
+    
     buffer = sock.recv(5).decode()
-    data = sock.recv(int(buffer))
-    print(data.decode())
-    status = input()
+    check = sock.recv(int(buffer)).decode()
 
-    buffer = get_buffer(status)
-    sock.send(buffer.encode())
-    sock.send(status.encode())
+    if check == "block":
+        block_comp = True
+        run_tracking = False
 
-    buffer = sock.recv(5).decode()
-    data = sock.recv(int(buffer))
-    print(data.decode())
-    user_id = input()
+    while True:
+        print(block_comp)
+        if not block_comp:
+            wait_for_user_activity()
+        
+        if block_comp:
+            block_computer()
+            # run_tracking = True
 
-    buffer = get_buffer(user_id)
-    sock.send(buffer.encode())
-    sock.send(user_id.encode())
+        if not is_admin:
+            track_user_inactive()
 
-    buffer = sock.recv(5).decode()
-    data = sock.recv(int(buffer))
-    print(data.decode())
-    password = input()
-
-    buffer = get_buffer(password)
-    sock.send(buffer.encode())
-    sock.send(password.encode())
-
+        if is_admin:
+            app = QApplication(sys.argv)
+            win = Window(sock)
+            win.show()
+            sys.exit(app.exec_())
 
 
 if __name__ == '__main__': 
-    start_server_conn()
+    sock = socket(AF_INET,SOCK_STREAM)
+    sock.connect(("192.168.1.192",55000))
 
-    # get_tabs()
-    # get_word_docs()
-    # get_running_apps()
-    # type_trace()
+    # create a UDP socket
+    udp_socket = socket(AF_INET, SOCK_DGRAM)
 
-    app_thread = RepeatTimer(1, get_running_apps)
-    app_thread.start()
+    # send data to the server
+    server_address = ('192.168.1.192', 55500)
+    udp_socket.sendto("yo".encode(), server_address)
 
-    web_thread = RepeatTimer(3, get_tabs)
-    web_thread.start()
+    thread = Thread(target=wait_for_block)
+    thread.start()
 
-    word_thread = RepeatTimer(3, get_word_docs)
-    word_thread.start()
+    app = QApplication(sys.argv)
 
-    type_thread = Thread(target=type_trace)
-    type_thread.start()
+    is_admin = False
+    block_comp = False
+    run_tracking = False
+
+    visited_websites = []
+    used_apps = []
+    user_id = ""
+
+    run_user_activity()
+    # block_computer()
+    # track_user_inactive()
+
+        
 
 
