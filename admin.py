@@ -165,18 +165,20 @@ class Window(QMainWindow):
         # Set the column headers
         self.anomaly_table.setHorizontalHeaderLabels(["Time", "User ID", "IP Address", "Field", "Anomaly", "Confirm Action", "Decline Action", "Block Computer"])
         
-
-        # for i in range(len(record)):
+        check_data = []
+        for i in range(len(record)):
+            check_data.append([record[i][0], record[i][1], record[i][2], record[i][3], record[i][4]])
+        print(check_data)
 
         # Add data to the table
         for i in range(self.anomaly_table.rowCount()):
 
-            if record[i][3] == "websites":
-                web = record[i][3].split('  ')
-                record[i][3] = web[2]
+            if check_data[i][3] == "websites":
+                web = check_data[i][4].split('  ')
+                check_data[i][4] = web[2]
 
             for j in range(self.anomaly_table.columnCount() - 3):
-                item = QTableWidgetItem(record[i][j])
+                item = QTableWidgetItem(check_data[i][j])
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make cell uneditable
                 self.anomaly_table.setItem(i, j, item)
 
@@ -197,8 +199,6 @@ class Window(QMainWindow):
 
     def confirm_action(self, anomaly_data):
         index = self.anomaly_table.indexAt(self.sender().pos())
-        if index.isValid():
-            print('Button {} clicked in row {}'.format(index.row(), index.row()))
 
         anomaly_data = anomaly_data[index.row()]
         
@@ -242,8 +242,6 @@ class Window(QMainWindow):
 
     def block_computer(self, anomaly_data):
         index = self.anomaly_table.indexAt(self.sender().pos())
-        if index.isValid():
-            print('Button {} clicked in row {}'.format(index.row(), index.row()))
 
         anomaly_data = anomaly_data[index.row()]
         
@@ -259,26 +257,24 @@ class Window(QMainWindow):
             self.c.execute("INSERT INTO blocked_computers (user_id, ip_addr) VALUES(?,?)",(user_id, ip_addr))
         self.conn.commit()
 
-        length = len(f"block {ip_addr}")
-        count = 0
+        buffer = str(len(f"block {ip_addr}")).rjust(5,"0")
+        # length = len(f"block {ip_addr}")
+        # count = 0
 
-        while length != 0:
-            length = int(length/10)
-            count+=1
+        # while length != 0:
+        #     length = int(length/10)
+        #     count+=1
 
-        buffer = (5-count)*'0' + f'{len(f"block {ip_addr}")}'
+        # buffer = (5-count)*'0' + f'{len(f"block {ip_addr}")}'
 
         self.sock.send(buffer.encode())
         self.sock.send(f"block {ip_addr}".encode())
 
         self.view_anomaly_data()
-
     
 
     def confirm_anomaly(self, anomaly_data):
         index = self.anomaly_table.indexAt(self.sender().pos())
-        if index.isValid():
-            print('Button {} clicked in row {}'.format(index.row(), index.row()))
 
         anomaly_data = anomaly_data[index.row()]
 
@@ -319,31 +315,31 @@ class Window(QMainWindow):
 
             button = QPushButton("Unblock")
             self.block_table.setCellWidget(i, 2, button)
-            button.clicked.connect(lambda: self.unblock_computer(record[i]))
+            button.clicked.connect(lambda: self.unblock_computer(record))
         
         self.setCentralWidget(self.block_table)
     
 
-    def unblock_computer(self, computer_data):
+    def unblock_computer(self, anomaly_data):
         index = self.block_table.indexAt(self.sender().pos())
-        if index.isValid():
-            print('Button {} clicked in row {}'.format(index.row(), index.row()))
-
+        
         anomaly_data = anomaly_data[index.row()]
 
-        ip_addr = computer_data[1]
+        ip_addr = anomaly_data[1]
 
         self.c.execute(f"DELETE FROM blocked_computers WHERE ip_addr = '{ip_addr}'")
         self.conn.commit()
 
-        length = len(f"unblock {ip_addr}")
-        count = 0
+        buffer = str(len(f"unblock {ip_addr}")).rjust(5,"0")
+        
+        # length = len(f"unblock {ip_addr}")
+        # count = 0
 
-        while length != 0:
-            length = int(length/10)
-            count+=1
+        # while length != 0:
+        #     length = int(length/10)
+        #     count+=1
 
-        buffer = (5-count)*'0' + f'{len(f"unblock {ip_addr}")}'
+        # buffer = (5-count)*'0' + f'{len(f"unblock {ip_addr}")}'
 
         self.sock.send(buffer.encode())
         self.sock.send(f"unblock {ip_addr}".encode())
