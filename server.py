@@ -30,7 +30,6 @@ def categorize_text(data, client_sock):
             for i in range(data[2]):
                 topics.append(data[1])
 
-        print(topics)
         is_anomaly = conf_detect_anomaly(topic, topics)
 
         if is_anomaly:
@@ -177,15 +176,18 @@ def save_apps(data, client_sock):
 
 
 def get_buffer(data):
-    length = len(data)
-    count = 0
+    # length = len(data)
+    # count = 0
 
-    while length != 0:
-        length = int(length/10)
-        count+=1
+    # while length != 0:
+    #     length = int(length/10)
+    #     count+=1
 
-    buffer = (5-count)*'0' + f'{len(data)}'
-    return buffer
+    # buffer = (5-count)*'0' + f'{len(data)}'
+    # return buffer
+
+    suffix = str(len(data)).rjust(5,"0")
+    return suffix
 
 
 def show_user_profiles():
@@ -214,7 +216,7 @@ def logout_user(data, client_sock):
     c.execute(f"UPDATE online SET log_off = '{current_time}' WHERE user_id = '{data[1]}' AND log_off IS NULL")
     conn.commit()
 
-    connected_users[client_sock] = None
+    connected_users[client_sock][1] = None
 
 
 def check_user_verification(client_socket, data, ip_addr):
@@ -233,14 +235,14 @@ def check_user_verification(client_socket, data, ip_addr):
             client_socket.send("ok".encode())
 
             if user_passwords[username][1] == 1:
-                buffer = get_buffer(f"admin:{username}")
+                buffer = get_buffer(f"admin:{username}:{user_psw}")
                 client_socket.send(buffer.encode())
-                client_socket.send(f"admin:{username}".encode())
+                client_socket.send(f"admin:{username}:{user_psw}".encode())
             
             else:
-                buffer = get_buffer(f"user:{username}")
+                buffer = get_buffer(f"user:{username}:{user_psw}")
                 client_socket.send(buffer.encode())
-                client_socket.send(f"user:{username}".encode())
+                client_socket.send(f"user:{username}:{user_psw}".encode())
 
                 now = datetime.now()
                 current_time = now.strftime("%H:%M:%S")
@@ -262,7 +264,7 @@ def check_user_verification(client_socket, data, ip_addr):
                     c.execute("INSERT INTO online (user_id, log_on, log_off) VALUES(?,?,?)",(username, current_time, None))
                     conn.commit()   
 
-                    connected_users[client_socket] = username
+                    connected_users[client_socket][1] = username
                         
         else:
             buffer = get_buffer("Username or password incorrect!")
@@ -291,11 +293,11 @@ def check_user_verification(client_socket, data, ip_addr):
             c.execute("INSERT INTO online (user_id, log_on, log_off) VALUES(?,?,?)",(username, current_time, None))
             conn.commit()   
 
-            buffer = get_buffer(f"user:{username}")
+            buffer = get_buffer(f"user:{username}:{user_psw}")
             client_socket.send(buffer.encode())
-            client_socket.send(f"user:{username}".encode())
+            client_socket.send(f"user:{username}:{user_psw}".encode())
 
-            connected_users[client_socket] = username
+            connected_users[client_socket][1] = username
 
             buffer = get_buffer("okay")
             client_socket.send(buffer.encode())
@@ -325,7 +327,8 @@ def anomaly_verification(client_sock, user_id):
     conn.commit()
     # all_sockets.remove(client_sock)
     # client_sock.close()
-    connected_users[client_sock] = None
+    connected_users[client_sock][1] = None
+    logout_user(f"logoff;{user_id}", client_sock)
 
     return True
 
@@ -335,21 +338,26 @@ def block_users(data):
 
     for udp_addr in udp_sockets:
         if udp_addr[0] == ip_addr:
-            for sock in connected_users():
-                if sock.getpeername()[0] == ip_addr and connected_users[sock] != None:
-                    logout_user(f"logoff;{connected_users[sock]}",sock)
+            for key, value in connected_users.items():
+                if value[0] == ip_addr and value[1] != None:
+                    logout_user(f"logoff;{value[1]}", key)
+                    break
             
             udp_sock.sendto("block".encode(), udp_addr)
+            break
 
 
 def unblock_computer(data):
     ip_addr = data.split(" ")[1]
 
-    for sock in all_sockets:
-        if sock.getpeername()[0] == ip_addr:
+    for key, value in connected_users.items():
+        if value[0] == ip_addr:
+            print(value[0])
             buffer = get_buffer("unblock")
-            sock.send(buffer.encode())
-            sock.send("unblock".encode())
+            key.send(buffer.encode())
+            key.send("unblock".encode())
+            print("sent")
+            break
 
 
 def get_user_info():
@@ -392,12 +400,14 @@ def run_connection():
                     # client_sock.send("unblock".encode())
 
                 all_sockets.append(client_sock)
+                connected_users[client_sock] = [addr[0], None]
 
             else:
 
                 # Else it recieves data from a certain client
                 try:
                     buffer = curr_socket.recv(5).decode()
+                    print(buffer)
                     data = curr_socket.recv(int(buffer))
                 except:
                     all_sockets.remove(curr_socket)
@@ -426,6 +436,7 @@ def run_connection():
                         topic = categorize_text(data, curr_socket)
                     
                     if "new_websites" in data:
+                        print(data)
                         process_websites(data, curr_socket)
 
                     if "new_apps" in data:
@@ -465,5 +476,4 @@ if __name__ == '__main__':
 
     get_user_info()
     run_connection()
-    # show_user_profiles()
 
