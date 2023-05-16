@@ -130,6 +130,13 @@ class AnomalyWindow(QMainWindow):
         self.enter_button.move(150, 160)
         self.enter_button.clicked.connect(self.re_enter_psw)
 
+        self.warning1_timer = QTimer(self)
+        self.warning1_timer.timeout.connect(self.show_warning1)
+        self.warning1_timer.start(60000)
+
+        self.warning2_timer = QTimer(self)
+        self.warning2_timer.timeout.connect(self.show_warning2)
+
     def start_timer(self):
         # Set timer for one minute
         self.warning1_timer = QTimer(self)
