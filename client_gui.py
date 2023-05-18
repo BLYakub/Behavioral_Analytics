@@ -61,9 +61,9 @@ class LoginWindow(QMainWindow):
         if username == '' or password == '':
             QMessageBox.warning(self, 'Warning', 'Please enter both username and password')
         else:
-            buffer = client.get_buffer(f"new_user:{action}:{username}:{password}")
+            buffer = client.get_buffer(f"new_user>{action}>{username}>{password}")
             self.sock.send(buffer.encode())
-            self.sock.send(f"new_user:{action}:{username}:{password}".encode())
+            self.sock.send(f"new_user>{action}>{username}>{password}".encode())
 
             buffer = self.sock.recv(5).decode()
             check = self.sock.recv(int(buffer)).decode()
@@ -91,9 +91,9 @@ class LoginWindow(QMainWindow):
         self.warning2_timer.stop()
         QMessageBox.warning(self, 'Warning', 'Computer will now get blocked')
         
-        buffer = client.get_buffer(f"new_user:block::")
+        buffer = client.get_buffer(f"new_user>block>>")
         self.sock.send(buffer.encode())
-        self.sock.send(f"new_user:block::".encode())
+        self.sock.send(f"new_user>block>>".encode())
 
         # client.block_comp = True
         self.login_successful.emit(False)

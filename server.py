@@ -12,9 +12,9 @@ import time
 
 
 def categorize_text(data, client_sock):
-    data_type = data.split('*')[0]
-    user_id = data.split('*')[1]
-    text = data.split('*')[2]
+    data_type = data.split('>')[0]
+    user_id = data.split('>')[1]
+    text = data.split('>')[2]
     topic = predict_topic(text)
     print(text)
     print(topic)
@@ -113,8 +113,8 @@ def process_websites(data, client_sock):
 
 
 def save_apps(data, client_sock):
-    user_id = data.split(':')[1]
-    apps = data.split(':')[2]
+    user_id = data.split('>')[1]
+    apps = data.split('>')[2]
     apps = apps.split('#')
 
     print(apps)
@@ -208,7 +208,7 @@ def show_user_profiles():
 
 def logout_user(data, client_sock):
 
-    data = data.split(';')
+    data = data.split('>')
     print(data)
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -220,7 +220,7 @@ def logout_user(data, client_sock):
 
 
 def check_user_verification(client_socket, data, ip_addr):
-    data = data.split(':')
+    data = data.split('>')
     username = data[2]
     user_psw = data[3]
 
@@ -426,7 +426,7 @@ def run_connection():
                     except:
                         data = data.decode()
 
-                    if "new_user" in data:
+                    if "new_user" == data.split(">")[0]:
                         print("user connected")
                         print(data)
                         check_user_verification(curr_socket, data, curr_socket.getpeername()[0])
@@ -462,12 +462,12 @@ if __name__ == '__main__':
     all_sockets = []
     conn_sock = socket(AF_INET,SOCK_STREAM)
     all_sockets.append(conn_sock)
-    conn_sock.bind(("192.168.1.192",55000))
+    conn_sock.bind(("172.17.55.217",55000))
     conn_sock.listen()
 
     udp_sockets = []
     udp_sock = socket(AF_INET, SOCK_DGRAM)
-    udp_sock.bind(('192.168.1.192', 55500))
+    udp_sock.bind(('172.17.55.217', 55500))
 
     print('waiting')
 

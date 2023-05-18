@@ -168,7 +168,6 @@ class Window(QMainWindow):
         check_data = []
         for i in range(len(record)):
             check_data.append([record[i][0], record[i][1], record[i][2], record[i][3], record[i][4]])
-        print(check_data)
 
         # Add data to the table
         for i in range(self.anomaly_table.rowCount()):

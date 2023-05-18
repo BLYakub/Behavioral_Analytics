@@ -62,9 +62,9 @@ def get_running_apps():
     print(apps)
     if apps:
         apps = '#'.join(apps)
-        buffer = get_buffer(f"new_apps:{user_id}:{apps}")
+        buffer = get_buffer(f"new_apps>{user_id}>{apps}")
         sock.send(buffer.encode())
-        sock.send(f"new_apps:{user_id}:{apps}".encode())
+        sock.send(f"new_apps>{user_id}>{apps}".encode())
         # verify_user_anomaly()
         check_anomaly = True
 
@@ -126,9 +126,9 @@ def type_trace(data):
     global check_anomaly, run_tracking
     print("Typed text")
     print(data)
-    buffer = get_buffer(f"new_text*{user_id}*{data}")
+    buffer = get_buffer(f"new_text>{user_id}>{data}")
     sock.send(buffer.encode())
-    sock.send(f"new_text*{user_id}*{data}".encode())
+    sock.send(f"new_text>{user_id}>{data}".encode())
     check_anomaly = True
 
 
@@ -192,9 +192,9 @@ def get_word_text(doc):
     print("Word doc")
     print(new_words)
 
-    buffer = get_buffer(f"new_text*{user_id}*{new_words}")
+    buffer = get_buffer(f"new_text>{user_id}>{new_words}")
     sock.send(buffer.encode())
-    sock.send(f"new_text*{user_id}*{new_words}".encode())
+    sock.send(f"new_text>{user_id}>{new_words}".encode())
     # verify_user_anomaly()
     check_anomaly = True
 
@@ -213,7 +213,7 @@ def unblock_computer():
 def block_computer():
     global block_comp
 
-    # thread = Thread(target=unblock_computer)
+    thread = Thread(target=unblock_computer)
 
     print("block")
 
@@ -308,12 +308,17 @@ def start_server_conn():
 
 
 def logout_user(successful):
-    global run_tracking
+    global run_tracking, visited_websites, used_apps, user_id, user_psw
 
     if successful:
-        buffer = get_buffer(f"logoff;{user_id}")
+        buffer = get_buffer(f"logoff>{user_id}")
         sock.send(buffer.encode())
-        sock.send(f"logoff;{user_id}".encode())
+        sock.send(f"logoff>{user_id}".encode())
+
+        visited_websites = []
+        used_apps = []
+        user_id = ""
+        user_psw = ""
 
         run_tracking = False
 
@@ -469,13 +474,13 @@ def run_user_activity():
 
 if __name__ == '__main__': 
     sock = socket(AF_INET,SOCK_STREAM)
-    sock.connect(("192.168.1.192",55000))
+    sock.connect(("172.17.55.217",55000))
 
     # create a UDP socket
     udp_socket = socket(AF_INET, SOCK_DGRAM)
 
     # send data to the server
-    server_address = ('192.168.1.192', 55500)
+    server_address = ('172.17.55.217', 55500)
     udp_socket.sendto("yo".encode(), server_address)
 
     thread = Thread(target=wait_for_block)
