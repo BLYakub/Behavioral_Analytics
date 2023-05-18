@@ -122,26 +122,14 @@ def get_website_title(url):
         return None
 
 
-def type_trace():
+def type_trace(data):
     global check_anomaly, run_tracking
-
-    while True:
-        if run_tracking:
-            recorded = kboard.record(until='enter')
-            all_keys = [key.name for key in recorded if key.event_type == "down"]
-            all_keys.pop(-1)
-            all_keys = ''.join(all_keys)
-            all_keys = all_keys.replace('space', ' ')
-            all_keys = all_keys.replace('shift', '')
-            print("Typed text")
-            print(all_keys)
-
-            if all_keys != '' and len(all_keys) > 5:
-                buffer = get_buffer(f"new_text*{user_id}*{all_keys}")
-                sock.send(buffer.encode())
-                sock.send(f"new_text*{user_id}*{all_keys}".encode())
-                # verify_user_anomaly()
-                check_anomaly = True
+    print("Typed text")
+    print(data)
+    buffer = get_buffer(f"new_text*{user_id}*{data}")
+    sock.send(buffer.encode())
+    sock.send(f"new_text*{user_id}*{data}".encode())
+    check_anomaly = True
 
 
 def get_word_docs():
@@ -225,9 +213,12 @@ def unblock_computer():
 def block_computer():
     global block_comp
 
-    thread = Thread(target=unblock_computer)
+    # thread = Thread(target=unblock_computer)
 
     print("block")
+
+    # while True:
+        # print("blocked")
     pyautogui.FAILSAFE = False
     pyautogui.PAUSE = 0
 
@@ -286,7 +277,7 @@ def verify_user_anomaly():
     
 
 def on_login_successful(successful):
-    global block_comp, run_tracking, user_id, is_admin
+    global block_comp, run_tracking, user_id, is_admin, user_psw
 
     block_comp = not successful
     print(block_comp)
@@ -299,6 +290,7 @@ def on_login_successful(successful):
         data = sock.recv(int(buffer)).decode()
         data = data.split(":")
         user_id = data[1]
+        user_psw = data[2]
 
         if data[0] == "admin":
             is_admin = True
@@ -349,7 +341,7 @@ def wait_for_user_activity():
     print("User activity detected!")
     start_server_conn()
 
-    if not is_admin:
+    if not is_admin and not block_comp:
         verify_user_anomaly()
 
 
@@ -361,21 +353,54 @@ def track_user_inactive():
     web_thread = RepeatTimer(6, get_tabs)
     web_thread.start()
 
-    word_thread = RepeatTimer(300, get_word_docs)
-    word_thread.start()
+    # word_thread = RepeatTimer(300, get_word_docs)
+    # word_thread.start()
 
-    inactivity_threshold = 300
+    inactivity_threshold = 3
+    last_typed_threshold = 5
 
     # Define a function to handle user activity
-    def on_activity(*args):
-        nonlocal last_activity_time
+    def on_key_activity(key):
+        nonlocal last_activity_time, typed_text
+        try:
+            typed_text += key.char
+        except:
+            if keyboard.Key.space is key:
+                typed_text += " "
+
+            if keyboard.Key.enter is key:
+                if user_psw in typed_text:
+                    typed_text = typed_text.replace(user_psw, "")
+
+                if typed_text != "" and len(typed_text) > 5:
+                    type_trace(typed_text)
+                typed_text = ""
+        
         last_activity_time = time.time()
 
+
+    def on_mouse_activity(*args):
+        nonlocal last_activity_time, typed_text
+        last_activity_time = time.time()
+        
+    def on_mouse_click(*args):
+        nonlocal last_activity_time, typed_text
+        last_activity_time = time.time()
+
+        if user_psw in typed_text:
+            typed_text = typed_text.replace(user_psw, "")
+
+        if typed_text != "" and len(typed_text) > 5:
+            type_trace(typed_text)
+        typed_text = ""
+
+
+    typed_text = ""
     # Start tracking time
     last_activity_time = time.time()
     # Create a listener for mouse and keyboard events
-    with mouse.Listener(on_move=on_activity, on_click=on_activity, on_scroll=on_activity) as mouse_listener:
-        with keyboard.Listener(on_press=on_activity, on_release=on_activity) as keyboard_listener:
+    with mouse.Listener(on_move=on_mouse_activity, on_click=on_mouse_click, on_scroll=on_mouse_activity) as mouse_listener:
+        with keyboard.Listener(on_press=on_key_activity) as keyboard_listener:
             # Loop until user shows activity
             while run_tracking:
                 # Check if user has been inactive for too long
@@ -386,12 +411,21 @@ def track_user_inactive():
                     logout_window.show()
                     logout_window.start_timer()
                     app.exec_()
-                else:
+
+                else:  
+                    if time.time() - last_activity_time > last_typed_threshold:
+                        if user_psw in typed_text:
+                            typed_text = typed_text.replace(user_psw, "")
+
+                        if typed_text != "" and len(typed_text) > 5:
+                            type_trace(typed_text)
+                        typed_text = ""
+                        
                     if check_anomaly:
                         verify_user_anomaly()
+
                     # print("active")
-                    pass                
-                # Wait for 1 second before checking again
+                # Wait for 1 second before checking again 
                 time.sleep(1)
             
             # Stop the listeners
@@ -400,7 +434,7 @@ def track_user_inactive():
 
     print("Tracking stopped.")
 
-    # app_thread.cancel()
+    app_thread.cancel()
     web_thread.cancel()
     # word_thread.cancel()
 
@@ -422,7 +456,6 @@ def run_user_activity():
         
         if block_comp:
             block_computer()
-            # run_tracking = True
 
         if not is_admin:
             track_user_inactive()
@@ -455,12 +488,10 @@ if __name__ == '__main__':
     run_tracking = False
     check_anomaly = False
 
-    type_thread = Thread(target=type_trace)
-    type_thread.start()
-
     visited_websites = []
     used_apps = []
     user_id = ""
+    user_psw = ""
 
     run_user_activity()
     

@@ -258,14 +258,6 @@ class Window(QMainWindow):
         self.conn.commit()
 
         buffer = str(len(f"block {ip_addr}")).rjust(5,"0")
-        # length = len(f"block {ip_addr}")
-        # count = 0
-
-        # while length != 0:
-        #     length = int(length/10)
-        #     count+=1
-
-        # buffer = (5-count)*'0' + f'{len(f"block {ip_addr}")}'
 
         self.sock.send(buffer.encode())
         self.sock.send(f"block {ip_addr}".encode())
@@ -331,15 +323,6 @@ class Window(QMainWindow):
         self.conn.commit()
 
         buffer = str(len(f"unblock {ip_addr}")).rjust(5,"0")
-        
-        # length = len(f"unblock {ip_addr}")
-        # count = 0
-
-        # while length != 0:
-        #     length = int(length/10)
-        #     count+=1
-
-        # buffer = (5-count)*'0' + f'{len(f"unblock {ip_addr}")}'
 
         self.sock.send(buffer.encode())
         self.sock.send(f"unblock {ip_addr}".encode())
