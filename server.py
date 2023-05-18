@@ -75,7 +75,7 @@ def process_websites(data, client_sock):
     
     for tab in websites:
         # print(tab)
-        topic = categorize_text(f"*{user_id}*{tab[1]}", client_sock)
+        topic = categorize_text(f">{user_id}>{tab[1]}", client_sock)
         tab.append(topic)
 
         is_anomaly = conf_detect_anomaly(topic, web_data)
@@ -305,13 +305,15 @@ def check_user_verification(client_socket, data, ip_addr):
 
 
 def anomaly_verification(client_sock, user_id):
-
+    print("check anomaly")
     buffer = get_buffer("Anomaly detected! Re-enter your user password:")
     client_sock.send(buffer.encode())
     client_sock.send("Anomaly detected! Re-enter your user password:".encode())
 
     buffer = client_sock.recv(5).decode()
     password = client_sock.recv(int(buffer)).decode()
+    print(password)
+    print(user_passwords[user_id][0])
 
     if user_passwords[user_id][0] == password:
         buffer = get_buffer("okay")
@@ -328,7 +330,7 @@ def anomaly_verification(client_sock, user_id):
     # all_sockets.remove(client_sock)
     # client_sock.close()
     connected_users[client_sock][1] = None
-    logout_user(f"logoff;{user_id}", client_sock)
+    logout_user(f"logoff>{user_id}", client_sock)
 
     return True
 
@@ -350,14 +352,19 @@ def block_users(data):
 def unblock_computer(data):
     ip_addr = data.split(" ")[1]
 
-    for key, value in connected_users.items():
-        if value[0] == ip_addr:
-            print(value[0])
-            buffer = get_buffer("unblock")
-            key.send(buffer.encode())
-            key.send("unblock".encode())
-            print("sent")
+    for udp_addr in udp_sockets:
+        if udp_addr[0] == ip_addr:
+            udp_sock.sendto("unblock".encode(), udp_addr)
             break
+
+    # for key, value in connected_users.items():
+    #     if value[0] == ip_addr:
+    #         print(value[0])
+    #         buffer = get_buffer("unblock")
+    #         key.send(buffer.encode())
+    #         key.send("unblock".encode())
+    #         print("sent")
+    #         break
 
 
 def get_user_info():

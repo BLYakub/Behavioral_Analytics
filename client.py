@@ -27,9 +27,10 @@ def get_buffer(data):
 
 
 def get_running_apps():
-    global check_anomaly
+    global check_anomaly, used_apps
+
     apps = []
-    NOT_WANTED_APPS = 'Description-----------Application Frame Host Setup/Uninstall ProcessName ApplicationFrameHost SystemSettings TextInputHost'
+    NOT_WANTED_APPS = 'Description-----------Application Frame Host Setup/Uninstall ProcessName ApplicationFrameHost SystemSettings TextInputHost python'
     # cmd = 'powershell "gps | where {$_.MainWindowTitle } | select Description'
     cmd = 'powershell "gps | where {$_.MainWindowTitle } | select ProcessName'
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -40,37 +41,34 @@ def get_running_apps():
             # decode() is necessary to get rid of the binary string (b')
             # rstrip() to remove `\r\n`
             app = line.decode().rstrip()
-            if app not in used_apps:
+            temp = app.replace(' ', '')
+
+            if app == "chrome":
+                app = "Google Chrome"
+            elif app == "Code":
+                app = "Visual Studio Code"
+
+            if temp.isalpha() and app not in used_apps:
                 apps.append(app)
-                used_apps.append(app)
-
-    remove_apps = []
-    for i in range(len(apps)):
-
-        app = apps[i].replace(' ', '')
-        if not app.isalpha():
-            remove_apps.append(apps[i])
-        elif apps[i] == "chrome":
-            apps[i] = "Google Chrome"
-        elif apps[i] == "Code":
-            apps[i] = "Visual Studio Code"
-    
-    for app in remove_apps:
-        apps.remove(app)
     
     print("Apps")
     print(apps)
     if apps:
-        apps = '#'.join(apps)
-        buffer = get_buffer(f"new_apps>{user_id}>{apps}")
-        sock.send(buffer.encode())
-        sock.send(f"new_apps>{user_id}>{apps}".encode())
-        # verify_user_anomaly()
-        check_anomaly = True
+        if not check_anomaly:
+            for app in apps:
+                used_apps.append(app)
+
+            apps = '#'.join(apps)
+            buffer = get_buffer(f"new_apps>{user_id}>{apps}")
+            sock.send(buffer.encode())
+            sock.send(f"new_apps>{user_id}>{apps}".encode())
+            # verify_user_anomaly()
+            check_anomaly = True
 
     
 def get_tabs():
-    global check_anomaly
+    global check_anomaly, visited_websites
+
     c = Chrome()
     outputs = c.fetch_history()
 
@@ -79,12 +77,12 @@ def get_tabs():
     websites = []
     today = datetime.datetime.today()
     today = today.strftime("%d/%m/%Y")
-    
+
+    # if not check_anomaly:
     for tab in his:
         date = tab[0].strftime('%d/%m/%Y')
         if date == today and tab[1] not in visited_websites:
             websites.append(tab[1])
-            visited_websites.append(tab[1])
     
     # print(websites)
     web_list = []
@@ -97,17 +95,19 @@ def get_tabs():
             web_list.append(f"{url}  {title}")
             
     print("websites")
-    # print(web_list)
-    websites = ';'.join(web_list)
+    print(web_list)
     
     if websites:
-        print(f"new_websites>user_1>{websites}")
-        buffer = get_buffer(f"new_websites>user_1>{websites}")
-        print(buffer)
-        sock.send(buffer.encode())
-        sock.send(f"new_websites>{user_id}>{websites}".encode())
-        # verify_user_anomaly()
-        check_anomaly = True
+        if not check_anomaly:
+            for web in websites:
+                visited_websites.append(web.split("  ")[0])
+
+            websites = ';'.join(web_list)
+            buffer = get_buffer(f"new_websites>user_1>{websites}")
+            sock.send(buffer.encode())
+            sock.send(f"new_websites>{user_id}>{websites}".encode())
+            # verify_user_anomaly()
+            check_anomaly = True
 
 
 def get_website_title(url):    
@@ -124,12 +124,13 @@ def get_website_title(url):
 
 def type_trace(data):
     global check_anomaly, run_tracking
-    print("Typed text")
-    print(data)
-    buffer = get_buffer(f"new_text>{user_id}>{data}")
-    sock.send(buffer.encode())
-    sock.send(f"new_text>{user_id}>{data}".encode())
-    check_anomaly = True
+    if not check_anomaly:
+        print("Typed text")
+        print(data)
+        buffer = get_buffer(f"new_text>{user_id}>{data}")
+        sock.send(buffer.encode())
+        sock.send(f"new_text>{user_id}>{data}".encode())
+        check_anomaly = True
 
 
 def get_word_docs():
@@ -213,12 +214,10 @@ def unblock_computer():
 def block_computer():
     global block_comp
 
-    thread = Thread(target=unblock_computer)
+    # thread = Thread(target=unblock_computer)
 
     print("block")
 
-    # while True:
-        # print("blocked")
     pyautogui.FAILSAFE = False
     pyautogui.PAUSE = 0
 
@@ -230,7 +229,7 @@ def block_computer():
     w -= 1
     h -= 1
 
-    thread.start()
+    # thread.start()
 
     # kboard.block_key(kboard.all_modifiers)
     for i in range(150):
@@ -243,32 +242,50 @@ def block_computer():
     for i in range(150):
         kboard.unblock_key(i)
 
+    # while block_comp:
+    #     pass
     print("done blocking")
 
 
 def wait_for_block():
     global run_tracking, block_comp
     while True:
-        data, address = udp_socket.recvfrom(5)
-        block_comp = True
-        run_tracking = False
+        try:
+            data, address = udp_socket.recvfrom(5)
+            if data.decode() == "block":
+                block_comp = True
+                run_tracking = False
+            else:
+                block_comp = False
+        except:
+            block_comp = False
+
 
 
 def on_anomaly_verified(successful):
-    global block_comp, run_tracking
+    global block_comp, run_tracking, check_anomaly, app_thread, web_thread
     block_comp = not successful
     if block_comp:
         run_tracking = False
 
+    check_anomaly = False
+
+    # app_thread = RepeatTimer(5, get_running_apps)
+    # app_thread.start()
+
+    # web_thread = RepeatTimer(6, get_tabs)
+    # web_thread.start()
+
 
 def verify_user_anomaly():
-    global block_comp, check_anomaly
-    check_anomaly = False
+    global block_comp, check_anomaly, app_thread, web_thread
 
     buffer = sock.recv(5).decode()
     check = sock.recv(int(buffer)).decode()
 
     if check != "okay":
+        # app_thread.cancel()
+        # web_thread.cancel()
         anomaly_window = AnomalyWindow(sock, app)
         anomaly_window.anomaly_verified.connect(on_anomaly_verified)
         anomaly_window.show()
@@ -351,8 +368,9 @@ def wait_for_user_activity():
 
 
 def track_user_inactive():
+    global app_thread, web_thread
     print("Run Tracking")
-    app_thread = RepeatTimer(5, get_running_apps)
+    app_thread = RepeatTimer(10, get_running_apps)
     app_thread.start()
 
     web_thread = RepeatTimer(6, get_tabs)
@@ -361,7 +379,7 @@ def track_user_inactive():
     # word_thread = RepeatTimer(300, get_word_docs)
     # word_thread.start()
 
-    inactivity_threshold = 3
+    inactivity_threshold = 30
     last_typed_threshold = 5
 
     # Define a function to handle user activity
@@ -497,6 +515,13 @@ if __name__ == '__main__':
     used_apps = []
     user_id = ""
     user_psw = ""
+
+    # app_thread = RepeatTimer(5, get_running_apps)
+    # app_thread.start()
+
+    # web_thread = RepeatTimer(6, get_tabs)
+    # web_thread.start()
+
 
     run_user_activity()
     

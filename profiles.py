@@ -69,6 +69,8 @@ def create_profile(apps, websites, texts):
 def conf_detect_anomaly(topic, topic_list, alpha=0.05):
 
     n = len(topic_list)
+    if n == 0:
+        return True
     count_topic = Counter(topic_list)[topic]
     p = count_topic / n
     se = math.sqrt(p * (1 - p) / n)
