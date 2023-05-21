@@ -3,7 +3,7 @@ import sqlite3
 from profiles import *
 from socket import *
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QAction, QTableWidget, QTableWidgetItem, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QHeaderView, QLineEdit, QMessageBox, QLabel, QMainWindow, QAction, QTableWidget, QTableWidgetItem, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget
 from PyQt5.QtChart import QChart, QChartView, QPieSeries
 from PyQt5.QtGui import QPainter
 
@@ -30,6 +30,7 @@ class Window(QMainWindow):
     def _createActions(self):
         # Creating actions using the second constructor
         self.dataAction = QAction("&View Data.", self)
+        self.predictionAction = QAction("&Topic Predictions", self)
         self.anomalyAction = QAction("&Anomly Data", self)
         self.blockedComputers = QAction("&Blocked Computers", self)
 
@@ -40,6 +41,8 @@ class Window(QMainWindow):
         dataMenu = menuBar.addMenu("&View Data")
         self.dataAction.triggered.connect(self.view_user_data)
         dataMenu.addAction(self.dataAction)
+        self.predictionAction.triggered.connect(self.view_topic_predictions)
+        dataMenu.addAction(self.predictionAction)
 
         anomalyMenu = menuBar.addMenu("&Anomalies")
         self.anomalyAction.triggered.connect(self.view_anomaly_data)
@@ -152,6 +155,81 @@ class Window(QMainWindow):
         self.chart.setTitle(user)
         self.chartView.setChart
 
+    def view_topic_predictions(self):
+        self.c.execute("SELECT * FROM label_data WHERE verified = '0'")
+        record = self.c.fetchall()
+
+        self.topic_table = QTableWidget(self)
+        self.topic_table.setRowCount(len(record))
+        self.topic_table.setColumnCount(4)
+
+        header = self.topic_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)       
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+
+        # Set the column headers
+        self.topic_table.setHorizontalHeaderLabels(["Text", "Topic", "Approve, Change"])
+
+        # Add data to the table
+        for i in range(self.topic_table.rowCount()):
+
+            item = QTableWidgetItem(record[i][0])
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make cell uneditable
+            self.topic_table.setItem(i, 0, item)
+
+            item = QTableWidgetItem(record[i][1])
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make cell uneditable
+            self.topic_table.setItem(i, 1, item)
+
+            button1 = QPushButton("Approve")
+            self.topic_table.setCellWidget(i, 2, button1)
+            button1.clicked.connect(lambda: self.approve_topic(record))
+
+            self.topic_field = QLineEdit(self)
+            # self.topic_table.setCellWidget(i, 3, self.topic_field)
+            button2 = QPushButton("Change")
+            # self.topic_table.setCellWidget(i, 3, button2)
+            button2.clicked.connect(lambda: self.change_topic(record))
+
+            layout = QHBoxLayout()
+            layout.addWidget(self.topic_field)
+            layout.addWidget(button2)
+
+            cellWidget = QWidget()
+            cellWidget.setLayout(layout)
+            self.topic_table.setCellWidget(i, 3, cellWidget)
+
+            self.topic_table.setRowHeight(i, 48)
+
+        self.setCentralWidget(self.topic_table)
+
+    def approve_topic(self, topic_data):
+        index = self.topic_table.indexAt(self.sender().pos())
+        topic_data = topic_data[index.row()]
+
+        text = topic_data[0]
+        topic = topic_data[1]
+
+        self.c.execute(f"UPDATE label_data SET verified = '1' WHERE text = '{text}' AND subject = '{topic}'")
+        self.conn.commit()
+
+        self.view_topic_predictions()
+
+    def change_topic(self, topic_data):
+        index = self.topic_table.indexAt(self.sender().pos())
+        topic_data = topic_data[index.row()]
+
+        text = topic_data[0]
+        topic = topic_data[1]
+        new_topic = self.topic_field.text().upper()
+        allowed_topics = ["ENTERTAINMENT", "SPORTS", "TECHNOLOGY", "BUSINESS", "HEALTH", "SCIENCE"]
+
+        if new_topic == "" or new_topic not in allowed_topics:
+            QMessageBox.warning(self, 'Warning', 'Topic should be one of the following:\nEntertainment, Sports, Technology, Business, Health, Science')
+        else:  
+            self.c.execute(f"UPDATE label_data SET verified = '1', subject = '{new_topic}' WHERE text = '{text}' AND subject = '{topic}'")
+            self.conn.commit()
+            self.view_topic_predictions()
 
     def view_anomaly_data(self):
 
@@ -218,7 +296,7 @@ class Window(QMainWindow):
             if record is None:
                 self.c.execute("INSERT INTO apps (user_id, name, count) VALUES(?,?,?)",(user_id, anomaly, 1))
             else:
-                self.c.execute(f"UPDATE apps SET count = {record[2] + 1} WHERE user_id = '{user_id}' AND name = '{anomaly}'") 
+                self.c.execute(f"UPDATE apps SET count = '{record[2] + 1}' WHERE user_id = '{user_id}' AND name = '{anomaly}'") 
         
         elif field == "texts":
             self.c.execute(f"SELECT * FROM texts WHERE user_id = '{user_id}' AND topic = '{anomaly}'")
@@ -227,7 +305,7 @@ class Window(QMainWindow):
             if record is None:
                 self.c.execute("INSERT INTO texts (user_id, topic, count) VALUES(?,?,?)",(user_id, anomaly, 1))
             else:
-                self.c.execute(f"UPDATE texts SET count = {record[-1] + 1} WHERE user_id = '{user_id}' AND topic = '{anomaly}'") 
+                self.c.execute(f"UPDATE texts SET count = '{record[-1] + 1}' WHERE user_id = '{user_id}' AND topic = '{anomaly}'") 
         
         else:
             self.c.execute(f"UPDATE users SET ip_address = '{ip_addr}' WHERE username = '{user_id}'")

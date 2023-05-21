@@ -19,7 +19,7 @@ def categorize_text(data, client_sock):
     print(text)
     print(topic)
 
-    c.execute("INSERT INTO label_data (text, subject) VALUES(?,?)",(text, topic))
+    c.execute("INSERT INTO label_data (text, subject, verified) VALUES(?,?,?)",(text, topic, 0))
     conn.commit()  
 
     if data_type == 'new_text':
@@ -53,7 +53,7 @@ def categorize_text(data, client_sock):
             if record is None:
                 c.execute("INSERT INTO texts (user_id, topic, count) VALUES(?,?,?)",(user_id, topic, 1))
             else:
-                c.execute(f"UPDATE texts SET count = {record[-1] + 1} WHERE user_id = '{user_id}' AND topic = '{topic}'")
+                c.execute(f"UPDATE texts SET count = '{record[-1] + 1}' WHERE user_id = '{user_id}' AND topic = '{topic}'")
             conn.commit()  
 
     return topic
@@ -156,7 +156,7 @@ def save_apps(data, client_sock):
                 if record is None:
                     c.execute("INSERT INTO apps (user_id, name, count) VALUES(?,?,?)",(user_id, app, 1))
                 else:
-                    c.execute(f"UPDATE apps SET count = {record[2] + 1} WHERE user_id = '{user_id}' AND name = '{app}'")
+                    c.execute(f"UPDATE apps SET count = '{record[2] + 1}' WHERE user_id = '{user_id}' AND name = '{app}'")
             conn.commit()
     
     else:
@@ -171,7 +171,7 @@ def save_apps(data, client_sock):
             if record is None:
                 c.execute("INSERT INTO apps (user_id, name, count) VALUES(?,?,?)",(user_id, app, 1))
             else:
-                c.execute(f"UPDATE apps SET count = {record[-1] + 1} WHERE user_id = '{user_id}' AND name = '{app}'")        
+                c.execute(f"UPDATE apps SET count = '{record[-1] + 1}' WHERE user_id = '{user_id}' AND name = '{app}'")        
         conn.commit()
 
 
@@ -469,12 +469,12 @@ if __name__ == '__main__':
     all_sockets = []
     conn_sock = socket(AF_INET,SOCK_STREAM)
     all_sockets.append(conn_sock)
-    conn_sock.bind(("172.17.55.217",55000))
+    conn_sock.bind(("172.17.64.131",55000))
     conn_sock.listen()
 
     udp_sockets = []
     udp_sock = socket(AF_INET, SOCK_DGRAM)
-    udp_sock.bind(('172.17.55.217', 55500))
+    udp_sock.bind(('172.17.64.131', 55500))
 
     print('waiting')
 

@@ -30,7 +30,7 @@ def get_running_apps():
     global check_anomaly, used_apps
 
     apps = []
-    NOT_WANTED_APPS = 'Description-----------Application Frame Host Setup/Uninstall ProcessName ApplicationFrameHost SystemSettings TextInputHost python'
+    NOT_WANTED_APPS = 'Description-----------Application Frame Host Setup/Uninstall ProcessName ApplicationFrameHost SystemSettings TextInputHost python explorer'
     # cmd = 'powershell "gps | where {$_.MainWindowTitle } | select Description'
     cmd = 'powershell "gps | where {$_.MainWindowTitle } | select ProcessName'
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -81,7 +81,7 @@ def get_tabs():
     # if not check_anomaly:
     for tab in his:
         date = tab[0].strftime('%d/%m/%Y')
-        if date == today and tab[1] not in visited_websites:
+        if date == today and tab[1] not in visited_websites and tab[1] not in websites:
             websites.append(tab[1])
     
     # print(websites)
@@ -214,7 +214,7 @@ def unblock_computer():
 def block_computer():
     global block_comp
 
-    # thread = Thread(target=unblock_computer)
+    # # thread = Thread(target=unblock_computer)
 
     print("block")
 
@@ -270,12 +270,6 @@ def on_anomaly_verified(successful):
 
     check_anomaly = False
 
-    # app_thread = RepeatTimer(5, get_running_apps)
-    # app_thread.start()
-
-    # web_thread = RepeatTimer(6, get_tabs)
-    # web_thread.start()
-
 
 def verify_user_anomaly():
     global block_comp, check_anomaly, app_thread, web_thread
@@ -291,6 +285,8 @@ def verify_user_anomaly():
         anomaly_window.show()
         # anomaly_window.start_timer()
         app.exec_()
+    else:
+        check_anomaly = False
     
 
 def on_login_successful(successful):
@@ -492,13 +488,13 @@ def run_user_activity():
 
 if __name__ == '__main__': 
     sock = socket(AF_INET,SOCK_STREAM)
-    sock.connect(("172.17.55.217",55000))
+    sock.connect(("172.17.64.131",55000))
 
     # create a UDP socket
     udp_socket = socket(AF_INET, SOCK_DGRAM)
 
     # send data to the server
-    server_address = ('172.17.55.217', 55500)
+    server_address = ('172.17.64.131', 55500)
     udp_socket.sendto("yo".encode(), server_address)
 
     thread = Thread(target=wait_for_block)
@@ -515,13 +511,6 @@ if __name__ == '__main__':
     used_apps = []
     user_id = ""
     user_psw = ""
-
-    # app_thread = RepeatTimer(5, get_running_apps)
-    # app_thread.start()
-
-    # web_thread = RepeatTimer(6, get_tabs)
-    # web_thread.start()
-
 
     run_user_activity()
     
