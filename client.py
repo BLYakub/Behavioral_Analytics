@@ -81,7 +81,9 @@ def get_tabs():
     # if not check_anomaly:
     for tab in his:
         date = tab[0].strftime('%d/%m/%Y')
-        if date == today and tab[1] not in visited_websites and tab[1] not in websites:
+        tab_time = tab[0].strftime("%H:%M:%S")
+
+        if date == today and tab_time > login_time and tab[1] not in visited_websites and tab[1] not in websites:
             websites.append(tab[1])
     
     # print(websites)
@@ -321,17 +323,12 @@ def start_server_conn():
 
 
 def logout_user(successful):
-    global run_tracking, visited_websites, used_apps, user_id, user_psw
+    global run_tracking
 
     if successful:
         buffer = get_buffer(f"logoff>{user_id}")
         sock.send(buffer.encode())
         sock.send(f"logoff>{user_id}".encode())
-
-        visited_websites = []
-        used_apps = []
-        user_id = ""
-        user_psw = ""
 
         run_tracking = False
 
@@ -364,7 +361,10 @@ def wait_for_user_activity():
 
 
 def track_user_inactive():
-    global app_thread, web_thread
+    global app_thread, web_thread, login_time, visited_websites, used_apps, user_id, user_psw
+    now = datetime.datetime.now()
+    login_time = now.strftime("%H:%M:%S")
+
     print("Run Tracking")
     app_thread = RepeatTimer(10, get_running_apps)
     app_thread.start()
@@ -455,6 +455,12 @@ def track_user_inactive():
 
     app_thread.cancel()
     web_thread.cancel()
+
+    visited_websites = []
+    used_apps = []
+    user_id = ""
+    user_psw = ""
+    login_time = ""
     # word_thread.cancel()
 
 
@@ -488,13 +494,13 @@ def run_user_activity():
 
 if __name__ == '__main__': 
     sock = socket(AF_INET,SOCK_STREAM)
-    sock.connect(("172.17.64.131",55000))
+    sock.connect(("172.17.100.116",55000))
 
     # create a UDP socket
     udp_socket = socket(AF_INET, SOCK_DGRAM)
 
     # send data to the server
-    server_address = ('172.17.64.131', 55500)
+    server_address = ('172.17.100.116', 55500)
     udp_socket.sendto("yo".encode(), server_address)
 
     thread = Thread(target=wait_for_block)
@@ -511,9 +517,9 @@ if __name__ == '__main__':
     used_apps = []
     user_id = ""
     user_psw = ""
-
-    run_user_activity()
+    login_time = ""
     
+    run_user_activity()
 
         
 

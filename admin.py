@@ -33,6 +33,7 @@ class Window(QMainWindow):
         self.predictionAction = QAction("&Topic Predictions", self)
         self.anomalyAction = QAction("&Anomly Data", self)
         self.blockedComputers = QAction("&Blocked Computers", self)
+        self.connectedComputers = QAction("&Connected Computers", self)
 
 
     def _createMenuBar(self):
@@ -43,6 +44,8 @@ class Window(QMainWindow):
         dataMenu.addAction(self.dataAction)
         self.predictionAction.triggered.connect(self.view_topic_predictions)
         dataMenu.addAction(self.predictionAction)
+        self.connectedComputers.triggered.connect(self.view_connected_computers)
+        dataMenu.addAction(self.connectedComputers)
 
         anomalyMenu = menuBar.addMenu("&Anomalies")
         self.anomalyAction.triggered.connect(self.view_anomaly_data)
@@ -155,6 +158,7 @@ class Window(QMainWindow):
         self.chart.setTitle(user)
         self.chartView.setChart
 
+
     def view_topic_predictions(self):
         self.c.execute("SELECT * FROM label_data WHERE verified = '0'")
         record = self.c.fetchall()
@@ -203,6 +207,7 @@ class Window(QMainWindow):
 
         self.setCentralWidget(self.topic_table)
 
+
     def approve_topic(self, topic_data):
         index = self.topic_table.indexAt(self.sender().pos())
         topic_data = topic_data[index.row()]
@@ -214,6 +219,7 @@ class Window(QMainWindow):
         self.conn.commit()
 
         self.view_topic_predictions()
+
 
     def change_topic(self, topic_data):
         index = self.topic_table.indexAt(self.sender().pos())
@@ -230,6 +236,42 @@ class Window(QMainWindow):
             self.c.execute(f"UPDATE label_data SET verified = '1', subject = '{new_topic}' WHERE text = '{text}' AND subject = '{topic}'")
             self.conn.commit()
             self.view_topic_predictions()
+
+
+    def view_connected_computers(self):
+        buffer = str(len("online_users")).rjust(5,"0")
+        self.sock.send(buffer.encode())
+        self.sock.send("online_users".encode())
+
+        buffer = self.sock.recv(5).decode()
+        data = self.sock.recv(int(buffer)).decode()
+
+        data = data.split(":")
+        data = [x.split(",") for x in data]
+
+        self.connected_table = QTableWidget(self)
+        self.connected_table.setRowCount(len(data))
+        self.connected_table.setColumnCount(2)
+
+        # Set the column headers
+        self.connected_table.setHorizontalHeaderLabels(["IP Address", "User"])
+
+        for i in range(self.connected_table.rowCount()):
+
+            item = QTableWidgetItem(data[i][0])
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make cell uneditable
+            self.connected_table.setItem(i, 0, item)
+
+            if data[i][1] == "":
+                item = QTableWidgetItem("None")
+            else:
+                item = QTableWidgetItem(data[i][1])
+
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make cell uneditable
+            self.connected_table.setItem(i, 1, item)
+        
+        self.setCentralWidget(self.connected_table)
+
 
     def view_anomaly_data(self):
 

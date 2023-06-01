@@ -216,7 +216,7 @@ def logout_user(data, client_sock):
     c.execute(f"UPDATE online SET log_off = '{current_time}' WHERE user_id = '{data[1]}' AND log_off IS NULL")
     conn.commit()
 
-    connected_users[client_sock][1] = None
+    connected_users[client_sock][1] = ""
 
 
 def check_user_verification(client_socket, data, ip_addr):
@@ -329,7 +329,7 @@ def anomaly_verification(client_sock, user_id):
     conn.commit()
     # all_sockets.remove(client_sock)
     # client_sock.close()
-    connected_users[client_sock][1] = None
+    connected_users[client_sock][1] = ""
     logout_user(f"logoff>{user_id}", client_sock)
 
     return True
@@ -366,6 +366,18 @@ def unblock_computer(data):
     #         print("sent")
     #         break
 
+def online_users(client_sock):
+    users = []
+
+    for value in connected_users.values():
+        # if value[1] is not None:
+        users.append(",".join(value))
+
+    users = ":".join(users)
+
+    buffer = get_buffer(users)
+    client_sock.send(buffer.encode())
+    client_sock.send(users.encode())
 
 def get_user_info():
     c.execute(f"SELECT * FROM users")
@@ -373,7 +385,6 @@ def get_user_info():
 
     for user in record:
         user_passwords[user[0]] = (user[1], user[2], user[3])
-
 
 def run_connection():
 
@@ -407,7 +418,7 @@ def run_connection():
                     # client_sock.send("unblock".encode())
 
                 all_sockets.append(client_sock)
-                connected_users[client_sock] = [addr[0], None]
+                connected_users[client_sock] = [addr[0], ""]
 
             else:
 
@@ -459,6 +470,9 @@ def run_connection():
                     if "unblock" == data.split(" ")[0]:
                         unblock_computer(data)
 
+                    if "online_users" == data:
+                        online_users(client_sock)
+
 
 
 if __name__ == '__main__': 
@@ -469,12 +483,12 @@ if __name__ == '__main__':
     all_sockets = []
     conn_sock = socket(AF_INET,SOCK_STREAM)
     all_sockets.append(conn_sock)
-    conn_sock.bind(("172.17.64.131",55000))
+    conn_sock.bind(("172.17.100.116",55000))
     conn_sock.listen()
 
     udp_sockets = []
     udp_sock = socket(AF_INET, SOCK_DGRAM)
-    udp_sock.bind(('172.17.64.131', 55500))
+    udp_sock.bind(('172.17.100.116', 55500))
 
     print('waiting')
 

@@ -82,6 +82,14 @@ def conf_detect_anomaly(topic, topic_list, alpha=0.05):
     else:
         return False
 
+# c.execute(f"SELECT * FROM texts WHERE user_id = 'user_1'")
+# text_data = c.fetchall()
+# topics = []
+# for data in text_data:
+#     for i in range(data[2]):
+#         topics.append(data[1])
+
+# print(is_anomaly("SCIENCE", topics))
 
 # c.execute(f"SELECT * FROM apps WHERE user_id = 'user_1'")
 # apps = c.fetchall()
