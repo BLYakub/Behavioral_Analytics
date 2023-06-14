@@ -16,6 +16,7 @@ class Window(QMainWindow):
         super().__init__(parent)
         self.sock = sock
         self.conn = sqlite3.connect('my_db.db')
+        # self.conn = sqlite3.connect('temp_db.db')
         self.c = self.conn.cursor()
         self.setWindowTitle("Admin View")
         self.resize(1000, 600)
@@ -54,6 +55,7 @@ class Window(QMainWindow):
         anomalyMenu.addAction(self.blockedComputers)
 
 
+    # View user profiles 
     def view_user_data(self):
         self.c.execute("SELECT * FROM users WHERE is_admin = '0'")
         users = self.c.fetchall()
@@ -159,6 +161,7 @@ class Window(QMainWindow):
         self.chartView.setChart
 
 
+    # View topics predected by the ML model
     def view_topic_predictions(self):
         self.c.execute("SELECT * FROM label_data WHERE verified = '0'")
         record = self.c.fetchall()
@@ -172,7 +175,7 @@ class Window(QMainWindow):
         header.setSectionResizeMode(3, QHeaderView.Stretch)
 
         # Set the column headers
-        self.topic_table.setHorizontalHeaderLabels(["Text", "Topic", "Approve, Change"])
+        self.topic_table.setHorizontalHeaderLabels(["Text", "Topic", "Approve", "Change"])
 
         # Add data to the table
         for i in range(self.topic_table.rowCount()):
@@ -205,7 +208,24 @@ class Window(QMainWindow):
 
             self.topic_table.setRowHeight(i, 48)
 
-        self.setCentralWidget(self.topic_table)
+        train_button = QPushButton("Train Model", self)
+        train_button.clicked.connect(self.train_model)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.topic_table)
+        layout.addWidget(train_button)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+
+        self.setCentralWidget(widget)
+
+    def train_model(self):
+
+        buffer = str(len("train_model")).rjust(5,"0")
+
+        self.sock.send(buffer.encode())
+        self.sock.send(f"train_model".encode())
 
 
     def approve_topic(self, topic_data):
@@ -273,6 +293,7 @@ class Window(QMainWindow):
         self.setCentralWidget(self.connected_table)
 
 
+    # View user behavioral anomaly data
     def view_anomaly_data(self):
 
         self.c.execute("SELECT * FROM anomalies WHERE handled = '0'")
@@ -352,6 +373,10 @@ class Window(QMainWindow):
         else:
             self.c.execute(f"UPDATE users SET ip_address = '{ip_addr}' WHERE username = '{user_id}'")
             self.conn.commit()
+            buffer = str(len(f"ip_change>{user_id}>{ip_addr}")).rjust(5,"0")
+            self.sock.send(buffer.encode())
+            self.sock.send(f"ip_change>{user_id}>{ip_addr}".encode())
+            
 
         self.c.execute(f"UPDATE anomalies SET is_anomaly = '0', handled = '1' WHERE user_id = '{user_id}' AND time = '{time}'")
         self.conn.commit()
@@ -401,6 +426,7 @@ class Window(QMainWindow):
         self.view_anomaly_data()
 
 
+    # View currently blocked computers
     def view_blocked_computers(self):
 
         self.c.execute("SELECT * FROM blocked_computers")
@@ -448,9 +474,4 @@ class Window(QMainWindow):
 
         self.view_blocked_computers()
 
-
-# app = QApplication(sys.argv)
-# win = Window(sock=0)
-# win.show()
-# sys.exit(app.exec_())
     

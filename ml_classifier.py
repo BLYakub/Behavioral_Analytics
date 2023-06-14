@@ -8,49 +8,20 @@ import pickle
 conn = sqlite3.connect('my_db.db')
 c = conn.cursor()
 
-# c.execute("SELECT text, subject FROM label_data")
-# web_data = c.fetchall()
-# data = []
-
-# for line in web_data:
-#   dic = {"title": line[0], "topic": line[1]}
-# # data.append(dic)
-
-# print(data)
-
-# df = pd.DataFrame(data)
-
-# print(df.head())
-# topics = df.topic.unique()
-
-# for topic in topics:
-#   temp_df = data[data['topic'] == topic][:5000]
-#   df = pd.concat([df, temp_df])
-
-# df['vector'] = df['title'].apply(lambda x: nlp(x).vector)
-
-# X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(), df['topic'].tolist(), test_size=0.33, random_state=42)
-
-# clf = SVC(gamma='auto')
-# clf.fit(X_train, y_train)
-# # y_pred = clf.predict(X_test)
-# # print(accuracy_score(y_test, y_pred))
-
-# # save the model to disk
-# filename = 'web_title_model.sav'
-# pickle.dump(clf, open(filename, 'wb'))
 
 # load the model from disk
 loaded_model = pickle.load(open('web_title_model.sav', 'rb'))
 
-fake_model = None
+# fake_model = pickle.load(open('fake_model.sav', 'rb'))
 
 nlp = spacy_sentence_bert.load_model('en_stsb_distilbert_base')
 
+
+# Train the machine learning model
 def train_model():
   global loaded_model
 
-  c.execute("SELECT text, subject FROM label_data")
+  c.execute("SELECT text, subject FROM label_data WHERE verified = '1'")
   web_data = c.fetchall()
   data = []
 
@@ -81,16 +52,18 @@ def train_model():
   pickle.dump(clf, open(filename, 'wb'))
 
 
+
 def train_fake_model():
-  global fake_model
+  # global fake_model
+  global loaded_model
 
   print("Begin Training")
-  c.execute("SELECT text, subject FROM label_data")
+  c.execute("SELECT text, subject FROM label_data WHERE verified = '1'")
   web_data = c.fetchall()
   data = []
-
-  for i in range(100):
-    dic = {"title": web_data[i][0], "topic": web_data[i][1]}
+  
+  for line in web_data:
+    dic = {"title": line[0], "topic": line[1]}
     data.append(dic)
 
   df = pd.DataFrame(data)
@@ -106,12 +79,18 @@ def train_fake_model():
 
   X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(), df['topic'].tolist(), test_size=0.33, random_state=42)
 
-  fake_model = SVC(gamma='auto')
-  fake_model.fit(X_train, y_train)
+  clf = SVC(gamma='auto')
+  clf.fit(X_train, y_train)
 
-  print("Finish Training")
+  # fake_model = clf
+  loaded_model = clf
+
+  filename = 'fake_model.sav'
+  pickle.dump(clf, open(filename, 'wb'))
+  print("finish training")
 
 
+# Practice prediction accuracy of the model
 def practice_predict(model):
   headlines = ["Scientists Figured Out How Much Exercise You Need to 'Offset' a Day of Sitting",
   "FC Barcelona wins UCL for the 10th time due to Messi's comeback from injury",
@@ -133,15 +112,8 @@ def practice_predict(model):
     print(f"True Label: {topic}, Predicted Label: {model.predict(nlp(headline).vector.reshape(1, -1))[0]} \n")
 
 
+# Predict topic of the given text using the model
 def predict_topic(text):
   topic = loaded_model.predict(nlp(text).vector.reshape(1, -1))[0]
   # return topic
   return topic
-
-# train_fake_model()
-
-# print("Real Model")
-# practice_predict(loaded_model)
-
-# print("Fake Model")
-# practice_predict(fake_model)

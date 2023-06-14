@@ -1,0 +1,34 @@
+10:26:56 - Anomaly - user_1 typed an irregular subject: SCIENCE
+10:27:07 - Computer 172.16.1.84 has been blocked
+10:33:28 - Anomaly - user_1 typed an irregular subject: BUSINESS
+10:34:18 - Computer 172.16.1.84 has been blocked
+10:34:18 - Anomaly - user_1 typed an irregular subject: SCIENCE
+10:34:24 - Computer 172.16.1.84 has been blocked
+10:35:23 - Computer 172.16.1.84 has been unblocked
+10:59:49 - Anomaly - user_1 typed an irregular subject: SCIENCE
+11:01:08 - Computer 172.16.1.84 has been blocked
+11:01:08 - Anomaly - user_1 typed an irregular subject: SCIENCE
+11:01:31 - Computer 172.16.1.84 has been blocked
+11:01:33 - Anomaly - user_1 searched the following topics: SCIENCE
+11:01:44 - Computer 172.16.1.84 has been unblocked
+11:02:54 - Computer 172.16.1.84 has been blocked
+11:11:44 - Anomaly - user_1 typed an irregular subject: SCIENCE
+11:11:48 - Computer 172.16.1.84 has been blocked
+11:12:32 - Computer 172.16.1.84 has been unblocked
+11:13:14 - Anomaly - user_1 searched the following topics: SCIENCE
+11:13:22 - Computer 172.16.1.84 has been blocked
+11:13:31 - Computer 172.16.1.84 has been unblocked
+11:13:55 - Anomaly - user_1 searched the following topics: SCIENCE
+11:14:05 - Computer 172.16.1.84 has been blocked
+11:22:30 - Computer 172.16.1.84 has been unblocked
+11:23:15 - Anomaly - user_1 typed an irregular subject: SCIENCE
+11:23:32 - Anomaly - user_1 searched the following topics: SCIENCE
+11:27:06 - Anomaly - user_1 typed an irregular subject: SCIENCE
+11:28:18 - Anomaly - user_1 typed an irregular subject: HEALTH
+11:29:15 - Anomaly - user_1 typed an irregular subject: BUSINESS
+11:33:11 - Anomaly - user_1 typed an irregular subject: BUSINESS
+11:34:52 - Anomaly - user_1 typed an irregular subject: BUSINESS
+11:35:15 - Anomaly - user_1 typed an irregular subject: BUSINESS
+11:37:03 - Anomaly - user_1 typed an irregular subject: BUSINESS
+11:38:18 - Anomaly - user_1 typed an irregular subject: SCIENCE
+12:01:57 - Anomaly - e_user used the following irregular apps: Visual Studio Code

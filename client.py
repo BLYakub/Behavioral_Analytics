@@ -26,6 +26,7 @@ def get_buffer(data):
     return suffix
 
 
+# Gets all running applications
 def get_running_apps():
     global check_anomaly, used_apps
 
@@ -51,8 +52,6 @@ def get_running_apps():
             if temp.isalpha() and app not in used_apps:
                 apps.append(app)
     
-    print("Apps")
-    print(apps)
     if apps:
         if not check_anomaly:
             for app in apps:
@@ -66,6 +65,7 @@ def get_running_apps():
             check_anomaly = True
 
     
+# Gets all the visited websites
 def get_tabs():
     global check_anomaly, visited_websites
 
@@ -86,7 +86,6 @@ def get_tabs():
         if date == today and tab_time > login_time and tab[1] not in visited_websites and tab[1] not in websites:
             websites.append(tab[1])
     
-    # print(websites)
     web_list = []
     for url in websites:
         title = get_website_title(url)
@@ -95,10 +94,7 @@ def get_tabs():
                 title = title.replace(" - חיפוש ב-Google", "")
 
             web_list.append(f"{url}  {title}")
-            
-    print("websites")
-    print(web_list)
-    
+                
     if websites:
         if not check_anomaly:
             for web in websites:
@@ -112,6 +108,7 @@ def get_tabs():
             check_anomaly = True
 
 
+# Gets the titels of the websites using the URLs
 def get_website_title(url):    
     # making requests instance
     reqs = requests.get(url)
@@ -124,101 +121,19 @@ def get_website_title(url):
         return None
 
 
+# Sends the real-time tracked typed text to the server
 def type_trace(data):
     global check_anomaly, run_tracking
     if not check_anomaly:
-        print("Typed text")
-        print(data)
         buffer = get_buffer(f"new_text>{user_id}>{data}")
         sock.send(buffer.encode())
         sock.send(f"new_text>{user_id}>{data}".encode())
         check_anomaly = True
 
 
-def get_word_docs():
-    print('running')
-    # Initialize an empty list to store the Word documents
-    documents = []
-
-    # Set the root directory to search
-    root_dir = 'C:\\'  # This will search the entire file system
-
-    # Search for Word documents in all subdirectories of the root directory
-    for root, dirs, files in os.walk(root_dir):
-        for file in files:
-            if file.endswith('.docx'):
-                file_path = os.path.join(root, file)
-                modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-                documents.append((file_path, modified_time))
-
-    new_docs = []
-
-    # Print the list of Word documents and their modified dates
-    time_threshold = datetime.datetime.now() - datetime.timedelta(days=1)  # 1 day
-    for document, modified_time in documents:
-        if modified_time > time_threshold:
-            new_docs.append(document)
-
-    for doc in new_docs:
-        print(doc)
-
-    if new_docs:
-        for doc in new_docs:
-            get_word_text(doc)
-    # get_word_text(new_docs[-1])
-
-
-def get_word_text(doc):
-    global check_anomaly
-    # Open the Word document
-    document = docx.Document(doc)
-
-    # Extract the text from the document
-    text = []
-    for paragraph in document.paragraphs:
-        text.append(paragraph.text)
-
-    # Print the extracted text
-    new_text = '\n'.join(text)
-
-    translator = Translator()
-    try:
-        new_text = translator.translate(new_text).text
-
-        new_text = str(new_text)            
-    except:
-        pass
-
-    r = Rake()
-    r.extract_keywords_from_text(new_text)
-    new_words = ' '.join(r.get_ranked_phrases())
-    print("Word doc")
-    print(new_words)
-
-    buffer = get_buffer(f"new_text>{user_id}>{new_words}")
-    sock.send(buffer.encode())
-    sock.send(f"new_text>{user_id}>{new_words}".encode())
-    # verify_user_anomaly()
-    check_anomaly = True
-
-
-def unblock_computer():
-    global block_comp
-    try:
-        buffer = sock.recv(5).decode()
-        check = sock.recv(int(buffer)).decode()
-        print(check)
-        block_comp = False
-    except:
-        block_comp = False
-
-
+# Blocks computer keyboard and mouse input
 def block_computer():
     global block_comp
-
-    # # thread = Thread(target=unblock_computer)
-
-    print("block")
 
     pyautogui.FAILSAFE = False
     pyautogui.PAUSE = 0
@@ -231,9 +146,6 @@ def block_computer():
     w -= 1
     h -= 1
 
-    # thread.start()
-
-    # kboard.block_key(kboard.all_modifiers)
     for i in range(150):
         kboard.block_key(i)
 
@@ -244,11 +156,8 @@ def block_computer():
     for i in range(150):
         kboard.unblock_key(i)
 
-    # while block_comp:
-    #     pass
-    print("done blocking")
 
-
+# Blocks and unblocks computer upon server command
 def wait_for_block():
     global run_tracking, block_comp
     while True:
@@ -263,7 +172,7 @@ def wait_for_block():
             block_comp = False
 
 
-
+# Blocks computer if user verification fails upon anomaly detection, else continues tracking
 def on_anomaly_verified(successful):
     global block_comp, run_tracking, check_anomaly, app_thread, web_thread
     block_comp = not successful
@@ -273,6 +182,7 @@ def on_anomaly_verified(successful):
     check_anomaly = False
 
 
+# Runs anomaly verification window to verifiy user identity upon anomaly detection
 def verify_user_anomaly():
     global block_comp, check_anomaly, app_thread, web_thread
 
@@ -280,22 +190,19 @@ def verify_user_anomaly():
     check = sock.recv(int(buffer)).decode()
 
     if check != "okay":
-        # app_thread.cancel()
-        # web_thread.cancel()
         anomaly_window = AnomalyWindow(sock, app)
         anomaly_window.anomaly_verified.connect(on_anomaly_verified)
         anomaly_window.show()
-        # anomaly_window.start_timer()
         app.exec_()
     else:
         check_anomaly = False
     
 
+# Begins user tracking if login/signup is successful
 def on_login_successful(successful):
     global block_comp, run_tracking, user_id, is_admin, user_psw
 
     block_comp = not successful
-    print(block_comp)
     if block_comp:
         run_tracking = False
 
@@ -314,6 +221,7 @@ def on_login_successful(successful):
             is_admin = False
 
 
+# Runs login/signup window
 def start_server_conn():
     login_window = LoginWindow(sock, app)
     login_window.login_successful.connect(on_login_successful)
@@ -322,6 +230,7 @@ def start_server_conn():
     app.exec_()
 
 
+# Logs out user 
 def logout_user(successful):
     global run_tracking
 
@@ -333,8 +242,8 @@ def logout_user(successful):
         run_tracking = False
 
 
+# Waits for user activity. Once user activity is detected, it runs the login/signup functions
 def wait_for_user_activity():
-    print("waiting")
     activity_detected = False
     # Define a function to handle user activity
     def on_activity(*args):
@@ -353,27 +262,26 @@ def wait_for_user_activity():
             mouse_listener.stop()
             keyboard_listener.stop()
 
-    print("User activity detected!")
     start_server_conn()
 
     if not is_admin and not block_comp:
         verify_user_anomaly()
 
 
+
+# Continuously checks user activity and alerts if user is inactive. If user is inactive then the tracking
+# stops and the system waits for user activity.
+# Also runs the real-time text recording.
 def track_user_inactive():
     global app_thread, web_thread, login_time, visited_websites, used_apps, user_id, user_psw
     now = datetime.datetime.now()
     login_time = now.strftime("%H:%M:%S")
 
-    print("Run Tracking")
     app_thread = RepeatTimer(10, get_running_apps)
     app_thread.start()
 
     web_thread = RepeatTimer(6, get_tabs)
     web_thread.start()
-
-    # word_thread = RepeatTimer(300, get_word_docs)
-    # word_thread.start()
 
     inactivity_threshold = 30
     last_typed_threshold = 5
@@ -424,7 +332,6 @@ def track_user_inactive():
             while run_tracking:
                 # Check if user has been inactive for too long
                 if time.time() - last_activity_time > inactivity_threshold:
-                    print("User is inactive!")
                     logout_window = LogoutWindow(app)
                     logout_window.logout_verified.connect(logout_user)
                     logout_window.show()
@@ -443,15 +350,12 @@ def track_user_inactive():
                     if check_anomaly:
                         verify_user_anomaly()
 
-                    # print("active")
                 # Wait for 1 second before checking again 
                 time.sleep(1)
             
             # Stop the listeners
             mouse_listener.stop()
             keyboard_listener.stop()
-
-    print("Tracking stopped.")
 
     app_thread.cancel()
     web_thread.cancel()
@@ -461,7 +365,6 @@ def track_user_inactive():
     user_id = ""
     user_psw = ""
     login_time = ""
-    # word_thread.cancel()
 
 
 def run_user_activity():
@@ -494,13 +397,13 @@ def run_user_activity():
 
 if __name__ == '__main__': 
     sock = socket(AF_INET,SOCK_STREAM)
-    sock.connect(("172.17.100.116",55000))
+    sock.connect(("172.17.120.199",55000))
 
     # create a UDP socket
     udp_socket = socket(AF_INET, SOCK_DGRAM)
 
     # send data to the server
-    server_address = ('172.17.100.116', 55500)
+    server_address = ('172.17.120.199', 55500)
     udp_socket.sendto("yo".encode(), server_address)
 
     thread = Thread(target=wait_for_block)

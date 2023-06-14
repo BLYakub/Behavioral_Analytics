@@ -6,6 +6,7 @@ import pyautogui
 import time
 
 
+# Create user login/signup window
 class LoginWindow(QMainWindow):
     login_successful = pyqtSignal(bool)
 
@@ -105,6 +106,7 @@ class LoginWindow(QMainWindow):
             event.ignore()  # Ignore attempts to close the window
 
 
+# Creates user verification window upon anomaly detection
 class AnomalyWindow(QMainWindow):
     anomaly_verified = pyqtSignal(bool)
 
@@ -199,26 +201,9 @@ class AnomalyWindow(QMainWindow):
     def closeEvent(self, event):
         if not self.close_window:
             event.ignore()  # Ignore attempts to close the window
-            
-
-class BlockedWindow(QMainWindow):
-    def __init__(self, app):
-        super().__init__()
-        # self.close_window = False
-        self.app = app
-        self.setWindowTitle('Blocked Window')
-        self.setGeometry(500, 500, 400, 200) # Set window position and size
-
-        # Create a QLabel widget with "Computer is blocked" text and set its font and size
-        label = QLabel(self)
-        label.setText("Computer is blocked")
-        # label.setFont(label.font().pointSize() * 2, bold=True)
-
-    # def closeEvent(self, event):
-        # if not self.close_window:
-            # event.ignore()
 
 
+# Creates logout window to verify if user is still active or not
 class LogoutWindow(QWidget):
     logout_verified = pyqtSignal(bool)
 
@@ -279,9 +264,3 @@ class LogoutWindow(QWidget):
         if not self.close_window:
             event.ignore()
 
-# if __name__ == '__main__':
-#     app = QApplication(sys.argv)
-#     login_window = LoginWindow(0)
-#     login_window.show()
-#     app.exec_()
-#     print("Yo dog")

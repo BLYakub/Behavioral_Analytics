@@ -9,6 +9,7 @@ conn = sqlite3.connect('my_db.db')
 c = conn.cursor()
 
 
+# Get user profile data: Most used apps, most searched topics, most typed topics
 def get_profile_data(data):
     
     if not data:
@@ -48,6 +49,7 @@ def get_data_percentage(data):
     return percentage_tuples
 
 
+# Create user profiles
 def create_profile(apps, websites, texts):
 
     apps = [(app[1], app[2]) for app in apps]
@@ -59,13 +61,10 @@ def create_profile(apps, websites, texts):
     w_data = get_profile_data(websites)
     t_data = get_profile_data(texts)
 
-    # print(f"Most used app(s): {a_data}")
-    # print(f"Most researched topic(s): {w_data}")
-    # print(f"Most typed text(s): {t_data}\n")
-
     return a_data, w_data, t_data
 
 
+# Run anomaly verification on given topic using confidence interval
 def conf_detect_anomaly(topic, topic_list, alpha=0.05):
 
     n = len(topic_list)
@@ -81,58 +80,3 @@ def conf_detect_anomaly(topic, topic_list, alpha=0.05):
         return True
     else:
         return False
-
-# c.execute(f"SELECT * FROM texts WHERE user_id = 'user_1'")
-# text_data = c.fetchall()
-# topics = []
-# for data in text_data:
-#     for i in range(data[2]):
-#         topics.append(data[1])
-
-# print(is_anomaly("SCIENCE", topics))
-
-# c.execute(f"SELECT * FROM apps WHERE user_id = 'user_1'")
-# apps = c.fetchall()
-
-# c.execute(f"SELECT * FROM websites WHERE user_id = 'user_1'")
-# websites = c.fetchall()
-
-# c.execute(f"SELECT * FROM texts WHERE user_id = 'user_1'")
-# texts = c.fetchall()
-
-# create_profile(apps, websites, texts)
-# def conf_detect_anomaly(topic, topics):
-#     # Filter the list of topics to only include those not related to the given topic
-#     non_topic_related = [x for x in topics if x != topic]
-
-#     # Set the confidence level
-#     confidence_level = 0.9
-
-#     # Calculate the proportion of the topic-related topics
-#     topic_proportion = len([x for x in topics if x == topic]) / len(topics)
-
-#     # Calculate the sample proportion of the non-topic related topics
-#     sample_proportion = len(non_topic_related) / len(topics)
-
-#     # Calculate the standard error of the sample proportion
-#     standard_error = np.sqrt((sample_proportion * (1 - sample_proportion)) / len(topics))
-
-#     # Calculate the t-value for the confidence interval
-#     degrees_of_freedom = len(topics) - 1
-#     t_value = t.ppf((1 + confidence_level) / 2, degrees_of_freedom)
-
-#     # Calculate the margin of error
-#     margin_of_error = t_value * standard_error
-
-#     # Calculate the lower and upper bounds of the confidence interval
-#     lower_bound = sample_proportion - margin_of_error
-#     upper_bound = sample_proportion + margin_of_error
-
-#     print(topic_proportion, upper_bound, lower_bound)
-#     # Check if the topic proportion falls outside of the confidence interval
-#     if topic_proportion < lower_bound or topic_proportion > upper_bound:
-#         print('anomaly')
-#         return True
-#     else:
-#         print('Okay')
-#         return False
